@@ -1,0 +1,22 @@
+import { requireIdentity } from "@/lib/authz";
+import { getDatabase, id, nowIso, parseJson } from "@/lib/database";
+import { runtimeConfig } from "@/lib/integrations";
+import { appendOrderEvent } from "@/lib/orders";
+
+export async function POST(request: Request) {
+  const identity = await requireIdentity(); const idempotencyKey = request.headers.get("idempotency-key"); if (!idempotencyKey) return Response.json({ error: "Idempotency-Key is required" }, { status: 400 });
+  const body = await request.json() as { catalogId?: string; preferredDate?: string; city?: string }; if (!body.catalogId) return Response.json({ error: "Select a test" }, { status: 400 }); const db = await getDatabase();
+  const existing = await db.prepare("SELECT p.*, o.reference, o.product_name FROM payment_attempts p JOIN orders o ON o.id = p.order_id WHERE p.member_id = ? AND p.idempotency_key = ?").bind(identity.id, idempotencyKey).first<Record<string, unknown>>(); if (existing) return Response.json({ mode: existing.provider === "razorpay" ? "razorpay" : "sandbox", orderId: existing.order_id, reference: existing.reference, providerOrderId: existing.provider_order_id, amountPaise: existing.amount_paise, keyId: runtimeConfig().RAZORPAY_KEY_ID ?? null, status: existing.status });
+  const product = await db.prepare("SELECT * FROM catalog_versions WHERE id = ? AND active = 1").bind(body.catalogId).first<Record<string, unknown>>(); if (!product) return Response.json({ error: "Product is unavailable" }, { status: 404 }); if (body.city && String(product.city).toLowerCase() !== body.city.toLowerCase()) return Response.json({ error: `Currently available in ${product.city}` }, { status: 400 });
+  const orderId = id("order"), attemptId = id("payment"), now = nowIso(), reference = `AL-${Math.floor(100000 + Math.random() * 900000)}`; const config = runtimeConfig(); let provider = "sandbox", providerOrderId = `sandbox_${orderId}`, paymentStatus = "captured";
+  if (config.RAZORPAY_KEY_ID && config.RAZORPAY_KEY_SECRET) {
+    const auth = btoa(`${config.RAZORPAY_KEY_ID}:${config.RAZORPAY_KEY_SECRET}`); const response = await fetch("https://api.razorpay.com/v1/orders", { method: "POST", headers: { Authorization: `Basic ${auth}`, "Content-Type": "application/json" }, body: JSON.stringify({ amount: product.amount_paise, currency: "INR", receipt: reference, notes: { internal_order_id: orderId, member_id: identity.id } }) }); if (!response.ok) return Response.json({ error: "Payment provider could not create checkout", detail: await response.text() }, { status: 502 }); const providerOrder = await response.json() as { id: string }; provider = "razorpay"; providerOrderId = providerOrder.id; paymentStatus = "created";
+  }
+  const snapshot = { catalogId: product.id, code: product.code, version: product.version, description: product.description, preparation: parseJson(product.preparation_json, []), taxPaise: product.tax_paise, turnaroundDays: product.turnaround_days, cancellationPolicy: product.cancellation_policy, city: product.city, preferredDate: body.preferredDate ?? null };
+  await db.batch([
+    db.prepare("INSERT INTO orders (id, member_id, type, product_name, status, reference, vendor, amount_paise, payment_status, tracking_url, appointment_at, metadata_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, NULL, ?, ?, NULL, ?, ?, ?, ?)").bind(orderId, identity.id, product.type, product.name, provider === "sandbox" ? "ops_review" : "payment_pending", reference, product.amount_paise, paymentStatus, body.preferredDate ?? null, JSON.stringify(snapshot), now, now),
+    db.prepare("INSERT INTO payment_attempts (id, order_id, member_id, provider, provider_order_id, provider_payment_id, amount_paise, currency, status, idempotency_key, detail_json, created_at, updated_at) VALUES (?, ?, ?, ?, ?, NULL, ?, 'INR', ?, ?, '{}', ?, ?)").bind(attemptId, orderId, identity.id, provider, providerOrderId, product.amount_paise, paymentStatus, idempotencyKey, now, now),
+  ]);
+  await appendOrderEvent(orderId, identity.id, provider === "sandbox" ? "ops_review" : "payment_pending", identity.id, "checkout", provider === "sandbox" ? "Payment simulated successfully; concierge fulfillment is queued." : "Checkout created. Complete payment to confirm your request.");
+  return Response.json({ mode: provider, orderId, reference, providerOrderId, amountPaise: product.amount_paise, keyId: config.RAZORPAY_KEY_ID ?? null, status: paymentStatus }, { status: 201 });
+}

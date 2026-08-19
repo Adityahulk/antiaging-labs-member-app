@@ -1,10 +1,11 @@
 import { getDatabase, nowIso } from "@/lib/database";
-import { getMemberIdentity } from "@/lib/member";
+import { requireRole } from "@/lib/authz";
+import { appendOrderEvent, orderMessages } from "@/lib/orders";
 
 const statuses = ["paid_reconciling", "ops_review", "vendor_booked", "appointment_confirmed", "in_transit", "collected", "lab_received", "processing", "results_received", "verification", "released", "cancelled", "refund_pending", "refunded", "qc_failed", "recollection"];
 
 export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
-  const actor = await getMemberIdentity();
+  const actor = await requireRole(["admin", "practitioner"]);
   const orderId = (await context.params).id;
   const body = await request.json() as { status?: string; vendor?: string; trackingUrl?: string; appointmentAt?: string };
   if (!body.status || !statuses.includes(body.status)) return Response.json({ error: "Invalid status" }, { status: 400 });
@@ -13,11 +14,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   const order = await db.prepare("SELECT member_id FROM orders WHERE id = ?").bind(orderId).first<{ member_id: string }>();
   if (!order) return Response.json({ error: "Order not found" }, { status: 404 });
   const now = nowIso();
-  await db.batch([
-    db.prepare("UPDATE orders SET status = ?, vendor = COALESCE(?, vendor), tracking_url = COALESCE(?, tracking_url), appointment_at = COALESCE(?, appointment_at), updated_at = ? WHERE id = ?")
-      .bind(body.status, body.vendor ?? null, body.trackingUrl ?? null, body.appointmentAt ?? null, now, orderId),
-    db.prepare("INSERT INTO admin_events (member_id, actor_id, action, entity_type, entity_id, detail_json, created_at) VALUES (?, ?, 'order.status_changed', 'order', ?, ?, ?)")
-      .bind(order.member_id, actor.id, orderId, JSON.stringify(body), now),
-  ]);
+  await db.batch([db.prepare("UPDATE orders SET vendor = COALESCE(?, vendor), tracking_url = COALESCE(?, tracking_url), appointment_at = COALESCE(?, appointment_at), updated_at = ? WHERE id = ?").bind(body.vendor ?? null, body.trackingUrl ?? null, body.appointmentAt ?? null, now, orderId), db.prepare("INSERT INTO admin_events (member_id, actor_id, action, entity_type, entity_id, detail_json, created_at) VALUES (?, ?, 'order.status_changed', 'order', ?, ?, ?)").bind(order.member_id, actor.id, orderId, JSON.stringify(body), now)]);
+  await appendOrderEvent(orderId, order.member_id, body.status, actor.id, "staff", orderMessages[body.status] ?? `Order updated: ${body.status.replaceAll("_", " ")}.`, JSON.stringify(body));
   return Response.json({ id: orderId, status: body.status });
 }

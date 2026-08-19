@@ -32,7 +32,7 @@ export function MemberShell({ children }: { children: ReactNode }) {
         </Link>
 
         <nav className="primary-nav" aria-label="Primary navigation">
-          {navigation.map((item) => (
+          {navigation.filter((item)=>item.href!=="/admin"||data?.roles.includes("admin")).map((item) => (
             <a
               key={item.href}
               className={`nav-item ${pathname === item.href ? "active" : ""}`}

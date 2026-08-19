@@ -56,6 +56,7 @@ export async function ensureMemberSeed(identity: MemberIdentity): Promise<void> 
   const existing = await database.prepare("SELECT id FROM members WHERE id = ?").bind(identity.id).first();
   if (existing) {
     await database.prepare("UPDATE members SET email = ?, full_name = ?, updated_at = ? WHERE id = ?").bind(identity.email, identity.fullName, now, identity.id).run();
+    await ensurePhaseOneSeed(database, identity, now);
     return;
   }
 
@@ -81,5 +82,41 @@ export async function ensureMemberSeed(identity: MemberIdentity): Promise<void> 
   statements.push(database.prepare("INSERT INTO chat_messages (id, member_id, conversation_id, role, content, sources_json, created_at) VALUES (?, ?, 'default', 'assistant', ?, '[]', ?)").bind(id("msg"), identity.id, "Good morning. I can help with today’s protocol, results, meals, training, or anything in your health data.", now));
 
   await database.batch(statements);
+  await ensurePhaseOneSeed(database, identity, now);
   await database.prepare("PRAGMA optimize").run();
+}
+
+async function ensurePhaseOneSeed(database: D1Database, identity: MemberIdentity, now: string) {
+  const catalog = [
+    ["catalog_biomarker_v1", "advanced_longevity_panel", "biomarker", "Advanced Longevity Panel", "74-marker at-home panel with verification, analysis, Twin refresh, and protocol update.", 1899900, 341982, 3, ["10–12 hour fast", "Plain water allowed", "Avoid hard training for 24 hours"]],
+    ["catalog_genetics_v1", "longevity_genetics_array", "genetics", "Longevity Genetics Array", "At-home genetics kit with QC, interpretation, inherited context, and raw-data access.", 2999900, 539982, 21, ["Read the kit instructions", "Do not eat or drink for 30 minutes", "Register the sample before return"]],
+  ] as const;
+  const memberCount = await database.prepare("SELECT COUNT(*) AS count FROM members").first<{ count: number }>();
+  const statements: D1PreparedStatement[] = [
+    database.prepare("INSERT OR IGNORE INTO member_roles (member_id, role, created_at) VALUES (?, 'member', ?)").bind(identity.id, now),
+    database.prepare("INSERT OR IGNORE INTO consent_records (id, member_id, purpose, notice_version, granted, evidence_json, granted_at, revoked_at, created_at) VALUES (?, ?, 'core_program', '2026-08-v1', 1, ?, ?, NULL, ?)").bind(`consent_core_${identity.id}`, identity.id, JSON.stringify({ seededDemo: true, channel: "authenticated_app" }), now, now),
+  ];
+  if (identity.id === "demo-member-arjun" || (memberCount?.count ?? 0) <= 1) statements.push(database.prepare("INSERT OR IGNORE INTO member_roles (member_id, role, created_at) VALUES (?, 'admin', ?)").bind(identity.id, now));
+  for (const [catalogId, code, type, name, description, amount, tax, turnaround, preparation] of catalog) statements.push(database.prepare("INSERT OR IGNORE INTO catalog_versions (id, code, version, type, name, description, amount_paise, tax_paise, city, turnaround_days, preparation_json, cancellation_policy, active, created_at) VALUES (?, ?, 1, ?, ?, ?, ?, ?, 'Hyderabad', ?, ?, 'Free cancellation before vendor booking; provider costs may apply afterward.', 1, ?)").bind(catalogId, code, type, name, description, amount, tax, turnaround, JSON.stringify(preparation), now));
+  await database.batch(statements);
+
+  const dailyCount = await database.prepare("SELECT COUNT(*) AS count FROM wearable_daily WHERE member_id = ?").bind(identity.id).first<{ count: number }>();
+  if (!dailyCount?.count) {
+    const days: D1PreparedStatement[] = [];
+    for (let offset = 34; offset >= 0; offset--) {
+      const date = new Date(Date.UTC(2026, 7, 19 - offset));
+      const day = date.toISOString().slice(0, 10);
+      const wave = Math.sin(offset / 3.2);
+      days.push(database.prepare("INSERT OR IGNORE INTO wearable_daily (id, member_id, provider, day, timezone, sleep_minutes, sleep_score, hrv_rmssd, resting_hr, steps, active_calories, workout_minutes, quality, raw_hash, created_at) VALUES (?, ?, 'oura', ?, 'Asia/Kolkata', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+        .bind(`daily_${identity.id}_${day}`, identity.id, day, Math.round(444 + wave * 24 - (offset < 3 ? 24 : 0)), Math.round(79 + wave * 5), Number((44 + wave * 3 - (offset < 3 ? 5 : 0)).toFixed(1)), Number((57 - wave * 1.5 + (offset < 3 ? 2 : 0)).toFixed(1)), Math.round(8200 + wave * 1300), Math.round(420 + wave * 80), offset % 3 === 0 ? 38 : 18, .94, `seed-${day}`, now));
+    }
+    await database.batch(days);
+  }
+  const existingOrders = await database.prepare("SELECT id, status FROM orders WHERE member_id = ?").bind(identity.id).all<{ id: string; status: string }>();
+  const events: D1PreparedStatement[] = [];
+  for (const order of existingOrders.results) {
+    events.push(database.prepare("INSERT OR IGNORE INTO order_events (id, order_id, member_id, status, actor_id, source, public_message, internal_note, occurred_at) VALUES (?, ?, ?, ?, 'system', 'migration', ?, '', ?)")
+      .bind(`event_initial_${order.id}`, order.id, identity.id, order.status, `Current status: ${order.status.replaceAll("_", " ")}.`, now));
+  }
+  if (events.length) await database.batch(events);
 }

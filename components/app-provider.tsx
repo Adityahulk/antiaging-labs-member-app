@@ -4,6 +4,8 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 
 export type AppData = {
   member: { id: string; fullName: string; email: string; primaryGoal: string } | null;
+  roles: string[];
+  catalog: Array<Record<string, unknown>>;
   journey: Array<{ id: number; stepCode: string; title: string; detail: string; state: string; dueAt: string | null }>;
   journeyProgress: number;
   orders: Array<Record<string, unknown>>;
@@ -13,6 +15,10 @@ export type AppData = {
   protocol: ({ id: string; version: number; strategy: string; actions: Array<{ id: number; scheduledTime: string; title: string; detail: string; reason: string; domain: string; done: boolean }> } & Record<string, unknown>) | null;
   observations: Array<Record<string, unknown>>;
   intake: { answered: number; total: number };
+  notifications: Array<Record<string, unknown>>;
+  dailyAdjustment: Record<string, unknown> | null;
+  wearableConnections: Array<Record<string, unknown>>;
+  integrations: Record<string, { mode: string; ready: boolean }>;
 };
 
 type ContextValue = { data: AppData | null; loading: boolean; refresh: () => Promise<void>; toggleAction: (id: number, done: boolean) => Promise<void> };

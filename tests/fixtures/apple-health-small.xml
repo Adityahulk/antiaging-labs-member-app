@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<HealthData>
+  <Record type="HKQuantityTypeIdentifierStepCount" sourceName="Apple Watch" unit="count" creationDate="2026-08-18 20:00:00 +0530" startDate="2026-08-18 08:00:00 +0530" endDate="2026-08-18 20:00:00 +0530" value="9234"/>
+  <Record type="HKQuantityTypeIdentifierRestingHeartRate" sourceName="Apple Watch" unit="count/min" creationDate="2026-08-18 20:00:00 +0530" startDate="2026-08-18 08:00:00 +0530" endDate="2026-08-18 20:00:00 +0530" value="56"/>
+  <Record type="HKQuantityTypeIdentifierActiveEnergyBurned" sourceName="Apple Watch" unit="kcal" creationDate="2026-08-18 20:00:00 +0530" startDate="2026-08-18 08:00:00 +0530" endDate="2026-08-18 20:00:00 +0530" value="488"/>
+</HealthData>

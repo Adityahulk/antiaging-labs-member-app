@@ -2,6 +2,7 @@ import { env } from "cloudflare:workers";
 import { getDatabase, id, nowIso } from "@/lib/database";
 import { getMemberIdentity } from "@/lib/member";
 import { ensureMemberSeed } from "@/lib/seed";
+import { processUpload } from "@/lib/upload-processing";
 
 type UploadEnv = { UPLOADS?: R2Bucket };
 
@@ -32,5 +33,6 @@ export async function POST(request: Request) {
   const db = await getDatabase();
   await db.prepare("INSERT INTO uploads (id, member_id, type, object_key, file_name, content_type, size, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, 'received', ?)")
     .bind(uploadId, identity.id, type, objectKey, file.name, file.type || "application/octet-stream", file.size, nowIso()).run();
-  return Response.json({ id: uploadId, fileName: file.name, type, status: "received" }, { status: 201 });
+  const processing = await processUpload(identity.id, uploadId);
+  return Response.json({ id: uploadId, fileName: file.name, type, status: processing.status === "completed" ? "processed" : processing.status, processing }, { status: 201 });
 }
