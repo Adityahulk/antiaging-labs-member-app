@@ -21,9 +21,10 @@ export async function POST(request: Request) {
   const file = form.get("file");
   const type = String(form.get("type") ?? "document");
   if (!(file instanceof File) || !file.size) return Response.json({ error: "Choose a file" }, { status: 400 });
-  if (file.size > 25 * 1024 * 1024) return Response.json({ error: "Maximum file size is 25 MB" }, { status: 413 });
-  const allowed = ["application/pdf", "text/csv", "text/plain", "application/json", "application/xml", "text/xml", "application/zip"];
-  if (!allowed.includes(file.type) && !/\.(pdf|csv|txt|json|xml|zip)$/i.test(file.name)) return Response.json({ error: "Unsupported file type" }, { status: 415 });
+  const maximum = type === "genetics" ? 50 * 1024 * 1024 : 25 * 1024 * 1024;
+  if (file.size > maximum) return Response.json({ error: `Maximum file size is ${maximum / 1024 / 1024} MB. Register larger WGS artifacts through the genomic artifact workflow.` }, { status: 413 });
+  const allowed = ["application/pdf", "text/csv", "text/plain", "application/json", "application/xml", "text/xml", "application/zip", "application/gzip", "application/octet-stream"];
+  if (!allowed.includes(file.type) && !/\.(pdf|csv|txt|json|xml|zip|vcf|gvcf)$/i.test(file.name)) return Response.json({ error: "Unsupported file type" }, { status: 415 });
   const uploadId = id("upload");
   const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
   const objectKey = `${identity.id}/${uploadId}/${safeName}`;

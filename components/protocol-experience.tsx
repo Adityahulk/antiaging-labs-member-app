@@ -65,7 +65,7 @@ export function ProtocolExperience() {
               {actions.map((action) => (
                 <button className={`daily-action ${action.done ? "done" : ""}`} onClick={() => toggleAction(action.id)} type="button" key={action.id}>
                   <span className="action-check">{action.done ? "✓" : ""}</span>
-                  <time>{action.time}</time>
+                  <time>{"scheduledTime" in action ? action.scheduledTime : action.time}</time>
                   <span className="action-main"><strong>{action.title}</strong><small>{action.detail}</small></span>
                   <span className="reason-tag">{action.reason}</span>
                   <span className="row-arrow">→</span>

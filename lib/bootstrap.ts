@@ -3,6 +3,8 @@ import { ensureMemberSeed } from "./seed";
 import type { MemberIdentity } from "./member";
 import { integrationHealth } from "./integrations";
 import { intakeQuestions } from "./intake-catalog";
+import { getGenomicsState } from "./genomics";
+import { getCrossModalFindings } from "./cross-modal";
 
 type Row = Record<string, unknown>;
 
@@ -42,6 +44,10 @@ export async function getMemberAppData(identity: MemberIdentity) {
   const actions = protocol
     ? await db.prepare("SELECT * FROM protocol_actions WHERE member_id = ? AND protocol_id = ? ORDER BY sort_order").bind(identity.id, protocol.id).all<Row>()
     : { results: [] as Row[] };
+  const [genomics, crossModal] = await Promise.all([
+    getGenomicsState(identity.id),
+    snapshot ? getCrossModalFindings(identity.id, String(snapshot.id)) : Promise.resolve([]),
+  ]);
 
   const journeyRows = journey.results.map((row) => decode(row));
   const complete = journeyRows.filter((row) => row.state === "complete").length;
@@ -58,7 +64,12 @@ export async function getMemberAppData(identity: MemberIdentity) {
     catalog: catalog.results.map((row) => decode(row, ["preparationJson"])),
     orders: orderRows,
     sources: sources.results.map((row) => decode(row, ["metadataJson"])),
-    twin: snapshot ? { ...decode(snapshot), domains: domains.results.map((row) => decode(row, ["evidenceJson"])) } : null,
+    twin: snapshot ? { ...decode(snapshot), domains: domains.results.map((row) => decode(row, ["evidenceJson"])), crossModal: crossModal.map((row) => decode(row as Row, ["layersJson", "evidenceRefsJson", "missingJson"])) } : null,
+    genomics: {
+      artifacts: genomics.artifacts.map((row) => decode(row as Row, ["qcJson"])),
+      interpretations: genomics.interpretations.map((row) => decode(row as Row, ["evidenceReleaseIdsJson", "limitationsJson"])),
+      runs: genomics.runs.map((row) => decode(row as Row, ["evidenceSetJson", "summaryJson"])),
+    },
     reports: reports.results.map((row) => decode(row, ["deepDiveJson"])),
     protocol: protocol ? { ...decode(protocol), actions: actions.results.map((row) => ({ ...decode(row), done: Boolean(row.done) })) } : null,
     observations: observations.results.map((row) => decode(row, ["metadataJson"])),

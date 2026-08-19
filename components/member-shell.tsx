@@ -12,8 +12,9 @@ const navigation = [
   { href: "/protocol", number: "04", label: "Protocol" },
   { href: "/reports", number: "05", label: "Reports" },
   { href: "/data", number: "06", label: "Data" },
-  { href: "/ask", number: "07", label: "Ask" },
-  { href: "/admin", number: "08", label: "Operations" },
+  { href: "/genetics", number: "07", label: "Genetics" },
+  { href: "/ask", number: "08", label: "Ask" },
+  { href: "/admin", number: "09", label: "Operations" },
 ];
 
 export function MemberShell({ children }: { children: ReactNode }) {

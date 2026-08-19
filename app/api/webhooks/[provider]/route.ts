@@ -2,8 +2,9 @@ import { getDatabase, nowIso } from "@/lib/database";
 import { hmacHex, runtimeConfig, timingSafeEqual } from "@/lib/integrations";
 import { appendOrderEvent } from "@/lib/orders";
 import { syncWearable } from "@/lib/wearables";
+import { processLabWebhook } from "@/lib/lab-adapter";
 
-const providers = new Set(["razorpay", "oura", "whoop", "open_wearables"]);
+const providers = new Set(["razorpay", "oura", "whoop", "open_wearables", "lab_adapter"]);
 
 export async function POST(request: Request, context: { params: Promise<{ provider: string }> }) {
   const provider = (await context.params).provider.toLowerCase();
@@ -18,6 +19,7 @@ export async function POST(request: Request, context: { params: Promise<{ provid
     if (secret) { const supplied = request.headers.get("x-razorpay-signature") ?? ""; const expected = await hmacHex(secret, raw); if (!timingSafeEqual(expected, supplied)) return Response.json({ error: "Invalid signature" }, { status: 401 }); }
   }
   if(provider==="open_wearables"){const secret=runtimeConfig().OPEN_WEARABLES_WEBHOOK_SECRET;if(secret){const supplied=request.headers.get("x-open-wearables-signature")??"";const expected=await hmacHex(secret,raw);if(!timingSafeEqual(expected,supplied))return Response.json({error:"Invalid signature"},{status:401});}}
+  if(provider==="lab_adapter"){const secret=runtimeConfig().LAB_ADAPTER_WEBHOOK_SECRET;if(!secret)return Response.json({error:"Lab webhook is not configured"},{status:503});const supplied=request.headers.get("x-lab-signature")??request.headers.get("x-webhook-signature")??"";const expected=await hmacHex(secret,raw);if(!timingSafeEqual(expected,supplied))return Response.json({error:"Invalid signature"},{status:401});}
   const db = await getDatabase();
   try {
     await db.prepare("INSERT INTO webhook_events (id, provider, event_type, payload_json, status, received_at, processed_at) VALUES (?, ?, ?, ?, 'received', ?, NULL)")
@@ -29,6 +31,7 @@ export async function POST(request: Request, context: { params: Promise<{ provid
     if (providerOrderId) { const attempt = await db.prepare("SELECT order_id, member_id FROM payment_attempts WHERE provider_order_id = ?").bind(providerOrderId).first<{ order_id: string; member_id: string }>(); if (attempt) { await db.batch([db.prepare("UPDATE payment_attempts SET status = 'captured', provider_payment_id = ?, updated_at = ? WHERE provider_order_id = ?").bind(paymentId, nowIso(), providerOrderId), db.prepare("UPDATE orders SET payment_status = 'captured' WHERE id = ?").bind(attempt.order_id)]); await appendOrderEvent(attempt.order_id, attempt.member_id, "ops_review", "razorpay", "webhook", "Payment confirmed. Our concierge team is arranging the next step."); } }
   }
   if(provider==="open_wearables"){const externalUserId=String(payload.user_id??payload.external_user_id??"");const wearableProvider=String(payload.provider??"");if(externalUserId&&wearableProvider){const connection=await db.prepare("SELECT member_id FROM wearable_connections WHERE provider='open_wearables_profile' AND external_user_id=?").bind(externalUserId).first<{member_id:string}>();if(connection)try{await syncWearable(connection.member_id,wearableProvider);}catch{/* reconciliation job retries provider failures */}}}
+  if(provider==="lab_adapter")await processLabWebhook(eventId,eventType,payload);
   await db.prepare("UPDATE webhook_events SET status = 'processed', processed_at = ? WHERE id = ?").bind(nowIso(), eventId).run();
   return Response.json({ accepted: true }, { status: 202 });
 }

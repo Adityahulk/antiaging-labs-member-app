@@ -15,6 +15,13 @@
       "when": 1787163143188,
       "tag": "0001_modern_mandrill",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1787164883130,
+      "tag": "0002_absurd_starjammers",
+      "breakpoints": true
     }
   ]
 }

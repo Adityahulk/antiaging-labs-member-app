@@ -1,4 +1,5 @@
 import { getDatabase, id, nowIso } from "./database";
+import { buildCrossModalFindings } from "./cross-modal";
 
 type Observation = { concept_code: string; value_number: number | null; value_text: string | null; unit: string | null; effective_at: string; source: string; quality: string };
 type WearDay = { day: string; sleep_minutes: number | null; sleep_score: number | null; hrv_rmssd: number | null; resting_hr: number | null; steps: number | null; workout_minutes: number | null; quality: number };
@@ -46,7 +47,7 @@ export async function recomputeTwin(memberId: string) {
   const coverage = Math.round(domains.reduce((sum, domain) => sum + domain.confidence, 0) / domains.length * 100); const priorities = [...domains].sort((a, b) => a.score - b.score).slice(0, 2); const summary = `${priorities[0].label} is the leading focus; ${priorities[1].label.toLowerCase()} is the next opportunity. ${validDays >= 21 ? "Wearable baseline is established." : `Baseline needs ${21 - validDays} more valid days.`}`;
   const statements: D1PreparedStatement[] = [db.prepare("INSERT INTO twin_snapshots (id, member_id, version, as_of, coverage, summary, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)").bind(snapshotId, memberId, version, now, coverage, summary, now)];
   for (const domain of domains) statements.push(db.prepare("INSERT INTO twin_domains (snapshot_id, member_id, domain_code, label, status, state_label, trend, confidence, freshness, key_metric, key_value, key_unit, target, evidence_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)").bind(snapshotId, memberId, domain.code, domain.label, domain.status, domain.state, domain.trend, domain.confidence, domain.freshness, domain.metric, domain.value, domain.unit, domain.target, JSON.stringify({ score: domain.score, observations: domain.evidence, missing: domain.missing, method: "twin-domain-observer-v1" })));
-  await db.batch(statements); await generateDailyAdjustment(memberId, snapshotId, domains, now); return { id: snapshotId, version, coverage, summary, domains, validDays };
+  await db.batch(statements); const crossModal = await buildCrossModalFindings(memberId, snapshotId); await generateDailyAdjustment(memberId, snapshotId, domains, now); return { id: snapshotId, version, coverage, summary, domains, crossModal, validDays };
 }
 
 async function generateDailyAdjustment(memberId: string, snapshotId: string, domains: Domain[], now: string) {

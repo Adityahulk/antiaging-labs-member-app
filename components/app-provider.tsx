@@ -10,7 +10,8 @@ export type AppData = {
   journeyProgress: number;
   orders: Array<Record<string, unknown>>;
   sources: Array<Record<string, unknown>>;
-  twin: ({ coverage: number; summary: string; asOf: string; domains: Array<Record<string, unknown>> } & Record<string, unknown>) | null;
+  twin: ({ coverage: number; summary: string; asOf: string; domains: Array<Record<string, unknown>>; crossModal?: Array<Record<string, unknown>> } & Record<string, unknown>) | null;
+  genomics: { artifacts: Array<Record<string, unknown>>; interpretations: Array<Record<string, unknown>>; runs: Array<Record<string, unknown>> };
   reports: Array<Record<string, unknown>>;
   protocol: ({ id: string; version: number; strategy: string; actions: Array<{ id: number; scheduledTime: string; title: string; detail: string; reason: string; domain: string; done: boolean }> } & Record<string, unknown>) | null;
   observations: Array<Record<string, unknown>>;

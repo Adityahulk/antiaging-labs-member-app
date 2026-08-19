@@ -4,6 +4,7 @@ export type RuntimeConfig = {
   RAZORPAY_KEY_ID?: string; RAZORPAY_KEY_SECRET?: string; RAZORPAY_WEBHOOK_SECRET?: string;
   OPEN_WEARABLES_URL?: string; OPEN_WEARABLES_API_KEY?: string; OPEN_WEARABLES_WEBHOOK_SECRET?: string;
   AI_GATEWAY_URL?: string; AI_GATEWAY_TOKEN?: string;
+  LAB_ADAPTER_URL?: string; LAB_ADAPTER_API_KEY?: string; LAB_ADAPTER_WEBHOOK_SECRET?: string;
 };
 
 export function runtimeConfig(): RuntimeConfig {
@@ -29,6 +30,7 @@ export function integrationHealth() {
     razorpay: { mode: config.RAZORPAY_KEY_ID && config.RAZORPAY_KEY_SECRET ? "live" : "sandbox", ready: Boolean(config.RAZORPAY_KEY_ID && config.RAZORPAY_KEY_SECRET) },
     openWearables: { mode: config.OPEN_WEARABLES_URL && config.OPEN_WEARABLES_API_KEY ? "live" : "sandbox", ready: Boolean(config.OPEN_WEARABLES_URL && config.OPEN_WEARABLES_API_KEY) },
     ai: { mode: config.AI_GATEWAY_URL ? "live" : "grounded-rules", ready: Boolean(config.AI_GATEWAY_URL) },
+    labAdapter: { mode: config.LAB_ADAPTER_URL && config.LAB_ADAPTER_API_KEY ? "live" : "sandbox", ready: Boolean(config.LAB_ADAPTER_URL && config.LAB_ADAPTER_API_KEY) },
   };
 }
 
@@ -40,3 +42,5 @@ export async function openWearablesRequest(path: string, init?: RequestInit) {
   if (!response.ok) throw new Error(`Open Wearables ${response.status}: ${await response.text()}`);
   return response;
 }
+
+export async function labAdapterRequest(path:string,init?:RequestInit){const config=runtimeConfig();if(!config.LAB_ADAPTER_URL||!config.LAB_ADAPTER_API_KEY)throw new Error("Lab adapter is not configured");const base=config.LAB_ADAPTER_URL.replace(/\/$/,"");const response=await fetch(`${base}${path}`,{...init,headers:{Authorization:`Bearer ${config.LAB_ADAPTER_API_KEY}`,"Content-Type":"application/json",...init?.headers}});if(!response.ok)throw new Error(`Lab adapter ${response.status}: ${await response.text()}`);return response;}

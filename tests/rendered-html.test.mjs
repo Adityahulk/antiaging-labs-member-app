@@ -21,7 +21,18 @@ test("contains Phase 1B wearable fusion and daily adaptation",async()=>{
 });
 
 test("includes deployable migrations and all core routes",async()=>{
-  const required=["drizzle/0000_brave_ozymandias.sql","drizzle/0001_modern_mandrill.sql","app/api/twin/recompute/route.ts","app/api/reports/generate/route.ts","app/api/protocols/generate/route.ts","app/api/wearables/connect/[provider]/route.ts","app/admin/clients/[id]/page.tsx"];
+  const required=["drizzle/0000_brave_ozymandias.sql","drizzle/0001_modern_mandrill.sql","drizzle/0002_absurd_starjammers.sql","app/api/twin/recompute/route.ts","app/api/reports/generate/route.ts","app/api/protocols/generate/route.ts","app/api/wearables/connect/[provider]/route.ts","app/admin/clients/[id]/page.tsx"];
   await Promise.all(required.map((path)=>access(new URL(path,root))));
-  assert.equal(required.length,7);
+  assert.equal(required.length,8);
+});
+
+test("contains Phase 2 genomic ingestion, cross-modal fusion, and supervised drafting",async()=>{
+  const [schema,genomics,fusion,drafting,reports,admin,geneticsUi]=await Promise.all([file("db/schema.ts"),file("lib/genomics.ts"),file("lib/cross-modal.ts"),file("lib/ai-drafting.ts"),file("lib/report-engine.ts"),file("app/api/admin/overview/route.ts"),file("components/genetics-experience.tsx")]);
+  assert.match(schema,/genomicArtifacts/);assert.match(schema,/genomicVariantCalls/);assert.match(schema,/genomicReanalysisRuns/);assert.match(schema,/crossModalFindings/);assert.match(schema,/chatReviews/);
+  assert.match(genomics,/parseVcf/);assert.match(genomics,/parseRawArray/);assert.match(genomics,/possibleApoeDiplotypes/);assert.match(genomics,/callRate/);assert.match(fusion,/laboratory/);assert.match(fusion,/wearable/);assert.match(fusion,/genetics/);assert.match(fusion,/intake/);assert.match(drafting,/allowedGroundingRefs/);assert.match(reports,/genetics-report-v2/);assert.match(admin,/chatAudits/);assert.match(geneticsUi,/REPRODUCIBLE HISTORY/);
+});
+
+test("ships Phase 2 routes, fixtures, and vendor-neutral lab activation",async()=>{
+  const required=["app/genetics/page.tsx","app/api/genomics/route.ts","app/api/genomics/[id]/reanalyse/route.ts","app/api/genomics/[id]/review/route.ts","app/api/admin/chat/[id]/review/route.ts","app/api/admin/orders/[id]/submit-lab/route.ts","tests/fixtures/genetics-array-grch37.txt","tests/fixtures/genetics-small-grch38.vcf"];
+  await Promise.all(required.map((path)=>access(new URL(path,root))));const [lab,webhook,chat]=await Promise.all([file("lib/lab-adapter.ts"),file("app/api/webhooks/[provider]/route.ts"),file("app/api/chat/route.ts")]);assert.match(lab,/Idempotency-Key/);assert.match(webhook,/lab_adapter/);assert.match(chat,/toolCalls/);assert.match(chat,/geneticInterpretationIds/);
 });

@@ -4,6 +4,7 @@ import { parseHealthFile, type ImportedObservation } from "./importers";
 import { runtimeConfig } from "./integrations";
 import { recomputeTwin } from "./twin-engine";
 import { unzipSync } from "fflate";
+import { ingestGenomicArtifact } from "./genomics";
 
 type UploadEnv = { UPLOADS?: R2Bucket };
 
@@ -13,6 +14,15 @@ export async function processUpload(memberId: string, uploadId: string) {
   try {
     const bucket = (env as unknown as UploadEnv).UPLOADS; if (!bucket) throw new Error("Upload storage unavailable"); const object = await bucket.get(String(upload.object_key)); if (!object) throw new Error("Stored file missing");
     const bytes = await object.arrayBuffer(); let text = new TextDecoder("utf-8", { fatal: false }).decode(bytes); let effectiveName=String(upload.file_name);
+    if (String(upload.type) === "genetics") {
+      const genomic = await ingestGenomicArtifact({ memberId, uploadId, objectKey: String(upload.object_key), fileName: effectiveName, size: Number(upload.size), bytes });
+      const result = { observations: 0, wearableDays: 0, needsReview: genomic.status === "needs_review" ? 1 : 0, genomic };
+      await db.batch([
+        db.prepare("UPDATE processing_jobs SET status = ?, progress = 100, result_json = ?, updated_at = ? WHERE id = ?").bind(genomic.status === "needs_review" ? "needs_review" : "completed", JSON.stringify(result), nowIso(), jobId),
+        db.prepare("UPDATE uploads SET status = ? WHERE id = ? AND member_id = ?").bind(genomic.status === "needs_review" ? "needs_review" : "processed", uploadId, memberId),
+      ]);
+      await recomputeTwin(memberId); text = ""; return { id: jobId, status: genomic.status === "needs_review" ? "needs_review" : "completed", ...result };
+    }
     if(String(upload.content_type)==="application/zip"||effectiveName.toLowerCase().endsWith(".zip")){const entries=unzipSync(new Uint8Array(bytes));const target=Object.entries(entries).find(([name])=>/export\.xml$/i.test(name))??Object.entries(entries).find(([name])=>/\.(csv|json|xml|txt)$/i.test(name));if(!target)throw new Error("ZIP does not contain a supported health export");effectiveName=target[0];text=new TextDecoder().decode(target[1]);}
     let parsed;
     if (String(upload.content_type) === "application/pdf" || effectiveName.toLowerCase().endsWith(".pdf")) parsed = await parsePdfWithGateway(bytes, effectiveName); else parsed = await parseHealthFile(text, String(upload.type), effectiveName);

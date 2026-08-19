@@ -243,3 +243,39 @@ export const dailyAdjustments = sqliteTable("daily_adjustments", {
 export const chatAudits = sqliteTable("chat_audits", {
   id: text("id").primaryKey(), memberId: text("member_id").notNull(), messageId: text("message_id").notNull(), snapshotHash: text("snapshot_hash").notNull(), fieldsJson: text("fields_json").notNull(), groundingJson: text("grounding_json").notNull(), model: text("model").notNull(), policyVersion: text("policy_version").notNull(), safetyClass: text("safety_class").notNull(), outcome: text("outcome").notNull(), createdAt: text("created_at").notNull(),
 }, (table) => [index("idx_chat_audits_member_time").on(table.memberId, table.createdAt), uniqueIndex("idx_chat_audits_message").on(table.messageId)]);
+
+export const genomicArtifacts = sqliteTable("genomic_artifacts", {
+  id: text("id").primaryKey(), memberId: text("member_id").notNull(), uploadId: text("upload_id"), kind: text("kind").notNull(), format: text("format").notNull(), genomeBuild: text("genome_build"), sampleId: text("sample_id"), objectKey: text("object_key").notNull(), checksumSha256: text("checksum_sha256").notNull(), size: integer("size").notNull(), status: text("status").notNull(), qcJson: text("qc_json").notNull(), pipelineVersion: text("pipeline_version").notNull(), createdAt: text("created_at").notNull(), updatedAt: text("updated_at").notNull(),
+}, (table) => [index("idx_genomic_artifacts_member_created").on(table.memberId, table.createdAt), index("idx_genomic_artifacts_status").on(table.status)]);
+
+export const genomicVariantCalls = sqliteTable("genomic_variant_calls", {
+  id: text("id").primaryKey(), artifactId: text("artifact_id").notNull(), memberId: text("member_id").notNull(), rsid: text("rsid"), chromosome: text("chromosome").notNull(), position: integer("position").notNull(), referenceAllele: text("reference_allele"), alternateAllele: text("alternate_allele"), genotype: text("genotype"), phased: integer("phased", { mode: "boolean" }).notNull(), callState: text("call_state").notNull(), filter: text("filter"), quality: real("quality"), metadataJson: text("metadata_json").notNull(), createdAt: text("created_at").notNull(),
+}, (table) => [index("idx_variant_calls_artifact").on(table.artifactId), index("idx_variant_calls_member_rsid").on(table.memberId, table.rsid), index("idx_variant_calls_member_position").on(table.memberId, table.chromosome, table.position)]);
+
+export const evidenceReleases = sqliteTable("evidence_releases", {
+  id: text("id").primaryKey(), source: text("source").notNull(), version: text("version").notNull(), releasedAt: text("released_at").notNull(), checksum: text("checksum").notNull(), status: text("status").notNull(), metadataJson: text("metadata_json").notNull(), createdAt: text("created_at").notNull(),
+}, (table) => [uniqueIndex("idx_evidence_source_version").on(table.source, table.version)]);
+
+export const genomicInterpretations = sqliteTable("genomic_interpretations", {
+  id: text("id").primaryKey(), memberId: text("member_id").notNull(), artifactId: text("artifact_id").notNull(), variantCallId: text("variant_call_id"), gene: text("gene").notNull(), rsid: text("rsid").notNull(), category: text("category").notNull(), title: text("title").notNull(), summary: text("summary").notNull(), evidenceLevel: text("evidence_level").notNull(), evidenceReleaseIdsJson: text("evidence_release_ids_json").notNull(), limitationsJson: text("limitations_json").notNull(), status: text("status").notNull(), createdAt: text("created_at").notNull(),
+}, (table) => [index("idx_interpretations_member_status").on(table.memberId, table.status), index("idx_interpretations_artifact").on(table.artifactId)]);
+
+export const genomicReanalysisRuns = sqliteTable("genomic_reanalysis_runs", {
+  id: text("id").primaryKey(), memberId: text("member_id").notNull(), artifactId: text("artifact_id").notNull(), previousRunId: text("previous_run_id"), trigger: text("trigger").notNull(), evidenceSetJson: text("evidence_set_json").notNull(), pipelineVersion: text("pipeline_version").notNull(), status: text("status").notNull(), summaryJson: text("summary_json").notNull(), createdAt: text("created_at").notNull(), completedAt: text("completed_at"),
+}, (table) => [index("idx_reanalysis_member_created").on(table.memberId, table.createdAt), index("idx_reanalysis_artifact").on(table.artifactId)]);
+
+export const crossModalFindings = sqliteTable("cross_modal_findings", {
+  id: text("id").primaryKey(), memberId: text("member_id").notNull(), snapshotId: text("snapshot_id").notNull(), domainCode: text("domain_code").notNull(), title: text("title").notNull(), statement: text("statement").notNull(), direction: text("direction").notNull(), confidence: real("confidence").notNull(), layersJson: text("layers_json").notNull(), evidenceRefsJson: text("evidence_refs_json").notNull(), missingJson: text("missing_json").notNull(), methodVersion: text("method_version").notNull(), createdAt: text("created_at").notNull(),
+}, (table) => [index("idx_cross_modal_member_snapshot").on(table.memberId, table.snapshotId), uniqueIndex("idx_cross_modal_snapshot_domain_title").on(table.snapshotId, table.domainCode, table.title)]);
+
+export const aiDraftRuns = sqliteTable("ai_draft_runs", {
+  id: text("id").primaryKey(), memberId: text("member_id").notNull(), task: text("task").notNull(), entityType: text("entity_type").notNull(), entityId: text("entity_id").notNull(), inputHash: text("input_hash").notNull(), inputRefsJson: text("input_refs_json").notNull(), model: text("model").notNull(), promptVersion: text("prompt_version").notNull(), policyVersion: text("policy_version").notNull(), outputJson: text("output_json").notNull(), status: text("status").notNull(), error: text("error"), createdAt: text("created_at").notNull(),
+}, (table) => [index("idx_ai_drafts_member_created").on(table.memberId, table.createdAt), index("idx_ai_drafts_entity").on(table.entityType, table.entityId)]);
+
+export const chatReviews = sqliteTable("chat_reviews", {
+  id: text("id").primaryKey(), auditId: text("audit_id").notNull(), memberId: text("member_id").notNull(), reviewerId: text("reviewer_id").notNull(), verdict: text("verdict").notNull(), correction: text("correction").notNull(), note: text("note").notNull(), createdAt: text("created_at").notNull(),
+}, (table) => [uniqueIndex("idx_chat_reviews_audit").on(table.auditId), index("idx_chat_reviews_member_created").on(table.memberId, table.createdAt)]);
+
+export const labIntegrationEvents = sqliteTable("lab_integration_events", {
+  id: text("id").primaryKey(), memberId: text("member_id").notNull(), orderId: text("order_id"), provider: text("provider").notNull(), externalReference: text("external_reference"), eventType: text("event_type").notNull(), idempotencyKey: text("idempotency_key").notNull(), status: text("status").notNull(), payloadJson: text("payload_json").notNull(), createdAt: text("created_at").notNull(), processedAt: text("processed_at"),
+}, (table) => [uniqueIndex("idx_lab_events_provider_idempotency").on(table.provider, table.idempotencyKey), index("idx_lab_events_member_created").on(table.memberId, table.createdAt)]);
