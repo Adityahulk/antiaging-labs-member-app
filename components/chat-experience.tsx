@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 
 type Message = { role: "user" | "assistant"; text: string; data?: string[] };
 
@@ -28,15 +28,34 @@ function answerFor(question: string): Message {
 export function ChatExperience() {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState("");
+  const [sending, setSending] = useState(false);
+  const loaded = useRef(false);
 
-  const send = (text: string) => {
+  useEffect(() => {
+    if (loaded.current) return;
+    loaded.current = true;
+    fetch("/api/chat", { cache: "no-store" }).then((response) => response.ok ? response.json() : null).then((history: Message[] | null) => {
+      if (history?.length) setMessages(history);
+    }).catch(() => undefined);
+  }, []);
+
+  const send = async (text: string) => {
     const clean = text.trim();
-    if (!clean) return;
-    setMessages((current) => [...current, { role: "user", text: clean }, answerFor(clean)]);
+    if (!clean || sending) return;
+    setMessages((current) => [...current, { role: "user", text: clean }]);
     setInput("");
+    setSending(true);
+    try {
+      const response = await fetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message: clean }) });
+      if (!response.ok) throw new Error("Chat unavailable");
+      const reply = await response.json() as Message;
+      setMessages((current) => [...current, reply]);
+    } catch {
+      setMessages((current) => [...current, answerFor(clean)]);
+    } finally { setSending(false); }
   };
 
-  const submit = (event: FormEvent) => { event.preventDefault(); send(input); };
+  const submit = (event: FormEvent) => { event.preventDefault(); void send(input); };
 
   return (
     <div className="chat-layout">
@@ -50,8 +69,9 @@ export function ChatExperience() {
             </div>
           ))}
         </div>
-        {messages.length === 1 ? <div className="suggested-prompts"><span>TRY ASKING</span><button onClick={() => send("What workout should I do today?")} type="button">What workout should I do today? <i>→</i></button><button onClick={() => send("What should I eat for lunch?")} type="button">What should I eat for lunch? <i>→</i></button><button onClick={() => send("Explain my ApoB result")} type="button">Explain my ApoB result <i>→</i></button><button onClick={() => send("Why is my recovery lower?")} type="button">Why is my recovery lower? <i>→</i></button></div> : null}
-        <form className="chat-composer" onSubmit={submit}><button aria-label="Attach" type="button">＋</button><input value={input} onChange={(event) => setInput(event.target.value)} placeholder="Ask about your data, protocol, meals, training…" /><button className="send-button" aria-label="Send" type="submit">↑</button></form>
+        {messages.length === 1 ? <div className="suggested-prompts"><span>TRY ASKING</span><button onClick={() => void send("What workout should I do today?")} type="button">What workout should I do today? <i>→</i></button><button onClick={() => void send("What should I eat for lunch?")} type="button">What should I eat for lunch? <i>→</i></button><button onClick={() => void send("Explain my ApoB result")} type="button">Explain my ApoB result <i>→</i></button><button onClick={() => void send("Why is my recovery lower?")} type="button">Why is my recovery lower? <i>→</i></button></div> : null}
+        {sending ? <p className="chat-thinking">Connecting your data…</p> : null}
+        <form className="chat-composer" onSubmit={submit}><button aria-label="Attach" type="button">＋</button><input value={input} onChange={(event) => setInput(event.target.value)} placeholder="Ask about your data, protocol, meals, training…" /><button className="send-button" aria-label="Send" disabled={sending} type="submit">↑</button></form>
       </section>
 
       <aside className="chat-context">

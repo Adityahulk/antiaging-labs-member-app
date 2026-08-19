@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useAppData } from "./app-provider";
 
 const todayActions = [
   { id: 1, time: "07:15", title: "Morning light", detail: "12 minutes outdoors", reason: "Circadian rhythm", done: true },
@@ -20,12 +21,14 @@ const domains = [
 ];
 
 export function ProtocolExperience() {
-  const [actions, setActions] = useState(todayActions);
+  const { data, toggleAction: toggleActionRemote } = useAppData();
   const [view, setView] = useState<"today" | "week" | "full">("today");
+  const actions = data?.protocol?.actions?.length ? data.protocol.actions : todayActions;
   const completed = actions.filter((action) => action.done).length;
 
   const toggleAction = (id: number) => {
-    setActions((current) => current.map((item) => item.id === id ? { ...item, done: !item.done } : item));
+    const action = actions.find((item) => item.id === id);
+    if (action) void toggleActionRemote(id, !action.done);
   };
 
   return (
@@ -72,7 +75,7 @@ export function ProtocolExperience() {
           </article>
           <aside className="today-context">
             <article className="adjustment-card">
-              <span className="card-kicker">TODAY'S ADJUSTMENT</span><h3>Keep Zone 2 easy.</h3><p>Recovery is below baseline, so stay near the lower end of your heart-rate range and skip intervals.</p><div className="context-metrics"><span><strong>39 ms</strong> HRV</span><span><strong>6h 51m</strong> Sleep</span></div><a href="/twin">See recovery evidence →</a>
+              <span className="card-kicker">TODAY&apos;S ADJUSTMENT</span><h3>Keep Zone 2 easy.</h3><p>Recovery is below baseline, so stay near the lower end of your heart-rate range and skip intervals.</p><div className="context-metrics"><span><strong>39 ms</strong> HRV</span><span><strong>6h 51m</strong> Sleep</span></div><a href="/twin">See recovery evidence →</a>
             </article>
             <article className="meal-card paper-card"><span className="card-kicker">NEXT MEAL</span><h3>High-protein lunch</h3><p>Tandoori chicken bowl · brown rice · cucumber raita · mixed greens</p><div><span>42 g protein</span><span>14 g fibre</span></div><a href="/ask">Find a substitution →</a></article>
           </aside>

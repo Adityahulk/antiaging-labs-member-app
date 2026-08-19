@@ -79,7 +79,7 @@ export default function JourneyPage() {
           <h3>Advanced Longevity Panel</h3>
           <p>74 biomarkers · at-home collection</p>
           <div className="order-meta"><span>Order AL-2048</span><span>20 Aug</span></div>
-          <a href="#biomarker-order">View booking →</a>
+          <a href="/tests">View booking →</a>
         </article>
         <article className="order-card paper-card">
           <div className="order-icon genetics">G</div>
@@ -88,7 +88,7 @@ export default function JourneyPage() {
           <p>Kit arriving by Friday · BlueDart</p>
           <div className="tracking-bar"><span /></div>
           <div className="order-meta"><span>Dispatched</span><span>Expected 21 Aug</span></div>
-          <a href="#genetics-order">Track kit →</a>
+          <a href="/tests">Track kit →</a>
         </article>
       </section>
     </MemberShell>

@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 const domains = [
   { name: "Metabolic", status: "Improving", value: "82", tone: "sage" },
   { name: "Recovery", status: "Watch today", value: "64", tone: "amber" },
@@ -16,13 +18,13 @@ export default function Home() {
   return (
     <div className="app-shell">
       <aside className="sidebar">
-        <a className="brand" href="#top" aria-label="Antiaging Labs home">
+        <Link className="brand" href="/" aria-label="Antiaging Labs home">
           <span className="brand-mark">A</span>
           <span>ANTIAGING LABS</span>
-        </a>
+        </Link>
 
         <nav className="primary-nav" aria-label="Primary navigation">
-          <a className="nav-item active" href="/"><span>01</span>Today</a>
+          <Link className="nav-item active" href="/"><span>01</span>Today</Link>
           <a className="nav-item" href="/journey"><span>02</span>Journey</a>
           <a className="nav-item" href="/twin"><span>03</span>Twin</a>
           <a className="nav-item" href="/protocol"><span>04</span>Protocol</a>
@@ -108,7 +110,7 @@ export default function Home() {
         <section className="content-grid">
           <article id="protocol" className="protocol-card paper-card">
             <div className="section-head">
-              <div><span className="card-kicker">TODAY'S PROTOCOL</span><h2>Four actions, built around your day.</h2></div>
+              <div><span className="card-kicker">TODAY&apos;S PROTOCOL</span><h2>Four actions, built around your day.</h2></div>
               <div className="completion-ring"><span>2/4</span></div>
             </div>
             <div className="protocol-list">
