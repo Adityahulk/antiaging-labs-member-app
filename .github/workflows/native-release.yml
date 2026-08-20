@@ -42,7 +42,7 @@ jobs:
       ANDROID_KEYSTORE_PATH: ${{ github.workspace }}/native/android/release-upload.jks
     steps:
       - name: Check out source
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Validate release inputs
         env:
@@ -98,7 +98,7 @@ jobs:
       IOS_KEYCHAIN_PASSWORD: ${{ secrets.IOS_KEYCHAIN_PASSWORD }}
     steps:
       - name: Check out source
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Validate release inputs
         env:
