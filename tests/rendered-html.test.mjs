@@ -164,3 +164,37 @@ test("contains Phase 3 native sync, outcome validation, experiments, and interop
   assert.match(ui, /Progress/);
   assert.match(ui, /Experiments/);
 });
+
+test("ships reproducible web, Android, and iOS build pipelines", async () => {
+  const required = [
+    ".github/workflows/web-ci.yml",
+    ".github/workflows/native-build.yml",
+    ".github/workflows/native-release.yml",
+    "native/android/gradle.properties",
+    "native/android/app/proguard-rules.pro",
+    "native/android/app/src/main/java/com/antiaginglabs/companion/SecureTokenStore.kt",
+    "native/android/app/src/main/java/com/antiaginglabs/companion/HealthSyncWorker.kt",
+    "native/ios/project.yml",
+    "native/ios/AntiagingCompanion/Info.plist",
+    "native/ios/AntiagingCompanion/PrivacyInfo.xcprivacy",
+    "native/ios/ExportOptions-AppStore.plist",
+    "docs/DEPLOYMENT_AND_INTEGRATIONS.md",
+  ];
+  await Promise.all(required.map((path) => access(new URL(path, root))));
+  const [nativeCi, release, android, ios, secrets] = await Promise.all([
+    file(".github/workflows/native-build.yml"),
+    file(".github/workflows/native-release.yml"),
+    file("native/android/app/build.gradle.kts"),
+    file("native/ios/project.yml"),
+    file(".github/SECRETS.md"),
+  ]);
+  assert.match(nativeCi, /assembleDebug/);
+  assert.match(nativeCi, /iphonesimulator/);
+  assert.match(release, /assembleRelease/);
+  assert.match(release, /-exportArchive/);
+  assert.match(android, /ANDROID_KEYSTORE_PATH/);
+  assert.match(android, /https:\/\//);
+  assert.match(ios, /AntiagingCompanion\.entitlements/);
+  assert.match(secrets, /ANDROID_KEYSTORE_BASE64/);
+  assert.match(secrets, /IOS_DISTRIBUTION_CERTIFICATE_BASE64/);
+});
