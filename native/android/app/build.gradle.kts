@@ -73,7 +73,7 @@ android {
 }
 
 dependencies {
-    implementation("androidx.activity:activity-compose:1.11.0")
+    implementation("androidx.activity:activity-compose:1.13.0")
     implementation("androidx.compose.material3:material3:1.4.0")
     implementation("androidx.health.connect:connect-client:1.1.0")
     implementation("androidx.work:work-runtime-ktx:2.10.3")
