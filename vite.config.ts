@@ -31,6 +31,12 @@ const localBindingConfig = {
         },
       ]
     : [],
+  // Daily wearable reconciliation, Twin recomputation, weekly wearable report
+  // generation, and Phase 3 maintenance run in the Worker scheduled handler.
+  // 02:00 UTC is 07:30 IST, before the member morning brief.
+  triggers: {
+    crons: ["0 2 * * *"],
+  },
 };
 
 export default defineConfig(async () => {

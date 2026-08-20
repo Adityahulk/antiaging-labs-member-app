@@ -198,3 +198,15 @@ test("ships reproducible web, Android, and iOS build pipelines", async () => {
   assert.match(secrets, /ANDROID_KEYSTORE_BASE64/);
   assert.match(secrets, /IOS_DISTRIBUTION_CERTIFICATE_BASE64/);
 });
+
+test("configures the Worker background processing trigger", async () => {
+  const [vite, worker, jobs] = await Promise.all([
+    file("vite.config.ts"),
+    file("worker/index.ts"),
+    file("lib/daily-jobs.ts"),
+  ]);
+  assert.match(vite, /crons:\s*\["0 2 \* \* \*"\]/);
+  assert.match(worker, /async scheduled/);
+  assert.match(jobs, /syncWearableWithTelemetry/);
+  assert.match(jobs, /runPhase3Jobs/);
+});
