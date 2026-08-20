@@ -74,7 +74,7 @@ jobs:
         run: gradle --no-daemon :app:assembleRelease :app:bundleRelease
 
       - name: Upload signed Android release
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: antiaging-companion-android-${{ inputs.version_name }}-${{ inputs.version_code }}
           path: |
@@ -171,7 +171,7 @@ jobs:
           ditto -c -k --sequesterRsrc --keepParent "$RUNNER_TEMP/AntiagingCompanion.xcarchive/dSYMs" native/ios/export/AntiagingCompanion-dSYMs.zip
 
       - name: Upload signed iOS release
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: antiaging-companion-ios-${{ inputs.version_name }}-${{ inputs.version_code }}
           path: |

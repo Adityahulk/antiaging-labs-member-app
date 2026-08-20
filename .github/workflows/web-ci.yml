@@ -41,7 +41,7 @@ jobs:
         run: npm test
 
       - name: Upload web worker build
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: member-os-web-${{ github.sha }}
           path: dist/
