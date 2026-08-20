@@ -16,7 +16,7 @@ Private, authenticated member and operations app for longitudinal biomarkers, we
 - Cloudflare D1 for versioned operational and longitudinal records
 - R2 for uploaded raw artifacts
 - Durable webhook inboxes and idempotent provider operations
-- Deterministic Twin/genomics/fusion engines; AI is used for traceable draft language and grounded chat responses
+- Deterministic Twin/genomics/fusion engines; one Responses-compatible AI gateway is used for traceable draft language, grounded chat responses, and review-gated PDF extraction
 
 ## Local commands
 
@@ -32,3 +32,4 @@ npx tsc --noEmit
 The app runs without external credentials in sandbox/deterministic mode. Live Razorpay, Open Wearables, AI, and lab-adapter activation use runtime environment variables configured through Sites.
 
 Native build instructions are in [`native/BUILDING.md`](native/BUILDING.md). The exact live-integration and deployment checklist is in [`docs/DEPLOYMENT_AND_INTEGRATIONS.md`](docs/DEPLOYMENT_AND_INTEGRATIONS.md).
+AI routing, models, environment variables, failover and activation tests are documented in [`docs/AI_GATEWAY.md`](docs/AI_GATEWAY.md).

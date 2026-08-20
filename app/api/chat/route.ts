@@ -1,8 +1,20 @@
-import { env } from "cloudflare:workers";
 import { getDatabase, id, nowIso, parseJson } from "@/lib/database";
 import { getMemberIdentity } from "@/lib/member";
 import { ensureMemberSeed } from "@/lib/seed";
 import { hmacHex } from "@/lib/integrations";
+import { aiGatewayStatus, runAI } from "@/lib/ai-gateway";
+
+const chatSchema = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    answer: { type: "string" },
+    groundingRefs: { type: "array", items: { type: "string" }, maxItems: 12 },
+    confidence: { type: "string", enum: ["high", "medium", "low"] },
+    escalate: { type: "boolean" },
+  },
+  required: ["answer", "groundingRefs", "confidence", "escalate"],
+} as const;
 
 function fallbackAnswer(question: string, context: { strategy: string; apob: string; hrv: string }) {
   const q = question.toLowerCase();
@@ -40,22 +52,25 @@ export async function POST(request: Request) {
     db.prepare("SELECT id,gene,rsid,title,summary,evidence_level FROM genomic_interpretations WHERE member_id=? AND status='released' ORDER BY gene").bind(identity.id).all(),
   ]);
   const context = { strategy: protocol?.strategy ?? "build consistency", apob: `${apob?.value_number ?? "—"} ${apob?.unit ?? ""}`.trim(), hrv: `${hrv?.value_number ?? "—"} ${hrv?.unit ?? ""}`.trim() };
-  const bindings = env as unknown as { AI_GATEWAY_URL?: string; AI_GATEWAY_TOKEN?: string };
   const safety = classifyQuestion(message); const toolCalls=[{tool:"get_current_twin",fields:["snapshot","domains","crossModal"]},{tool:"get_active_protocol",fields:["strategy","actions"]},{tool:"get_member_context",fields:["intake"]},{tool:"get_released_genetics",fields:["gene","rsid","summary","evidenceLevel"]}];const grounding = { snapshot, domains: domains.results, crossModal:findings.results.map((row)=>({...row,layers_json:parseJson((row as Record<string,unknown>).layers_json,[])})), actions: actions.results, intake: intake.results.map((row)=>({question:(row as Record<string,unknown>).question_code,answer:parseJson((row as Record<string,unknown>).answer_json,null)})), releasedGenetics:genetics.results, keyMetrics: context, toolCalls };
   let answer = safety.escalate ? safety.answer : fallbackAnswer(message, context);
-  if (bindings.AI_GATEWAY_URL && !safety.escalate) {
+  let answerModel = "grounded-rules-v2";
+  let modelEscalated = false;
+  if (aiGatewayStatus().ready && !safety.escalate) {
     try {
-      const response = await fetch(bindings.AI_GATEWAY_URL, { method: "POST", headers: { "Content-Type": "application/json", ...(bindings.AI_GATEWAY_TOKEN ? { Authorization: `Bearer ${bindings.AI_GATEWAY_TOKEN}` } : {}) }, body: JSON.stringify({ task:"personal_health_guidance", message, member: { id: identity.id, goal: context.strategy }, grounding, policy:{version:"member-guide-v1",instructions:"Answer only from supplied structured grounding. Never invent measurements. Distinguish measured values, estimates and plans. If context is insufficient, say what is missing."} }) });
-      if (response.ok) {const candidate=((await response.json()) as { answer?: string }).answer;if(candidate&&candidate.length<=5000)answer=candidate;}
+      const result = await runAI<{answer?:unknown;groundingRefs?:unknown;confidence?:unknown;escalate?:unknown}>({ task:"personal_health_guidance", modelClass:"fast", schema:chatSchema, schemaName:"grounded_member_answer", maxOutputTokens:1800, input:{question:message,goal:context.strategy,grounding}, instructions:"Answer only from the supplied structured grounding. Never invent measurements, variants, citations, or protocol actions. Distinguish measured values, estimates, and plans. Stay within the active protocol. If grounding is missing, stale, contradictory, or the request requires diagnosis or a treatment change, set escalate to true and explain what human review is needed. Return only the requested structured object." });
+      const candidate=typeof result.data.answer==="string"?result.data.answer.trim():"";
+      if(candidate&&candidate.length<=5000){answer=candidate;answerModel=`${result.provider}:${result.model}`;modelEscalated=result.data.escalate===true;}
     } catch { /* Built-in grounded response keeps chat available if the configured provider is down. */ }
   }
   const now = nowIso();
-  const sources = safety.escalate ? [`Safety policy: ${safety.classification}`,"Human follow-up requested"] : [`ApoB: ${context.apob}`, `HRV: ${context.hrv}`, `Twin snapshot v${String(snapshot?.version??"—")}`, `Protocol: ${protocol?.strategy??"not published"}`,...findings.results.slice(0,2).map((row)=>`Finding: ${String((row as Record<string,unknown>).title)}`),...genetics.results.slice(0,2).map((row)=>`Reviewed genetics: ${String((row as Record<string,unknown>).gene)} ${String((row as Record<string,unknown>).rsid)}`)];
+  const escalated=safety.escalate||modelEscalated;const safetyClass=modelEscalated&&!safety.escalate?"model_review":safety.classification;
+  const sources = escalated ? [`Safety policy: ${safetyClass}`,"Human follow-up requested"] : [`ApoB: ${context.apob}`, `HRV: ${context.hrv}`, `Twin snapshot v${String(snapshot?.version??"—")}`, `Protocol: ${protocol?.strategy??"not published"}`,...findings.results.slice(0,2).map((row)=>`Finding: ${String((row as Record<string,unknown>).title)}`),...genetics.results.slice(0,2).map((row)=>`Reviewed genetics: ${String((row as Record<string,unknown>).gene)} ${String((row as Record<string,unknown>).rsid)}`)];
   const userMessageId=id("msg"), assistantMessageId=id("msg"); const snapshotHash=await hmacHex(identity.id,JSON.stringify(grounding));
   await db.batch([
     db.prepare("INSERT INTO chat_messages (id, member_id, conversation_id, role, content, sources_json, created_at) VALUES (?, ?, 'default', 'user', ?, '[]', ?)").bind(userMessageId, identity.id, message, now),
     db.prepare("INSERT INTO chat_messages (id, member_id, conversation_id, role, content, sources_json, created_at) VALUES (?, ?, 'default', 'assistant', ?, ?, ?)").bind(assistantMessageId, identity.id, answer, JSON.stringify(sources), new Date(Date.now() + 1).toISOString()),
-    db.prepare("INSERT INTO chat_audits (id,member_id,message_id,snapshot_hash,fields_json,grounding_json,model,policy_version,safety_class,outcome,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)").bind(id("chataudit"),identity.id,assistantMessageId,snapshotHash,JSON.stringify(toolCalls),JSON.stringify({sources,refs:{snapshotId:snapshot?.id??null,findingIds:findings.results.map((row)=>(row as Record<string,unknown>).id),geneticInterpretationIds:genetics.results.map((row)=>(row as Record<string,unknown>).id)}}),bindings.AI_GATEWAY_URL?"configured-gateway":"grounded-rules-v2","member-guide-v2",safety.classification,safety.escalate?"escalated":"answered",now),
+    db.prepare("INSERT INTO chat_audits (id,member_id,message_id,snapshot_hash,fields_json,grounding_json,model,policy_version,safety_class,outcome,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)").bind(id("chataudit"),identity.id,assistantMessageId,snapshotHash,JSON.stringify(toolCalls),JSON.stringify({sources,refs:{snapshotId:snapshot?.id??null,findingIds:findings.results.map((row)=>(row as Record<string,unknown>).id),geneticInterpretationIds:genetics.results.map((row)=>(row as Record<string,unknown>).id)}}),answerModel,"member-guide-v2",safetyClass,escalated?"escalated":"answered",now),
   ]);
   return Response.json({ role: "assistant", text: answer, data: sources });
 }

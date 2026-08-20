@@ -1,10 +1,10 @@
 import { env } from "cloudflare:workers";
 import { getDatabase, id, nowIso } from "./database";
 import { parseHealthFile, type ImportedObservation } from "./importers";
-import { runtimeConfig } from "./integrations";
 import { recomputeTwin } from "./twin-engine";
 import { unzipSync } from "fflate";
 import { ingestGenomicArtifact } from "./genomics";
+import { aiGatewayStatus, runAI } from "./ai-gateway";
 
 type UploadEnv = { UPLOADS?: R2Bucket };
 
@@ -45,9 +45,15 @@ export async function processUpload(memberId: string, uploadId: string) {
 function observationStatement(db: D1Database, memberId: string, observation: ImportedObservation, now: string) { return db.prepare("INSERT INTO observations (id, member_id, concept_code, domain, value_number, value_text, unit, effective_at, source, quality, metadata_json, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)").bind(id("obs"), memberId, observation.conceptCode, observation.domain, observation.valueNumber, observation.valueText ?? null, observation.unit ?? null, observation.effectiveAt, observation.source, observation.quality, JSON.stringify(observation.metadata ?? {}), now); }
 
 async function parsePdfWithGateway(bytes: ArrayBuffer, fileName: string): Promise<{ observations: ImportedObservation[]; wearableDays: [] }> {
-  const config = runtimeConfig(); if (!config.AI_GATEWAY_URL || bytes.byteLength > 8 * 1024 * 1024) return { observations: [], wearableDays: [] };
-  const view=new Uint8Array(bytes);let binary="";for(let offset=0;offset<view.length;offset+=32768)binary+=String.fromCharCode(...view.subarray(offset,Math.min(offset+32768,view.length)));const base64=btoa(binary);binary=""; const response = await fetch(config.AI_GATEWAY_URL, { method: "POST", headers: { "Content-Type": "application/json", ...(config.AI_GATEWAY_TOKEN ? { Authorization: `Bearer ${config.AI_GATEWAY_TOKEN}` } : {}) }, body: JSON.stringify({ task: "extract_lab_results", fileName, fileBase64: base64, outputSchema: { observations: [{ conceptCode: "string", domain: "string", valueNumber: "number", unit: "string", effectiveAt: "ISO date", source: "string" }] } }) });
-  if (!response.ok) return { observations: [], wearableDays: [] }; const value = await response.json() as { observations?: ImportedObservation[] }; return { observations: (value.observations ?? []).map((item) => ({ ...item, quality: "needs_review", metadata: { ...(item.metadata ?? {}), parser: "ai-pdf-v1" } })), wearableDays: [] };
+  if (!aiGatewayStatus().ready || bytes.byteLength > 8 * 1024 * 1024) return { observations: [], wearableDays: [] };
+  const view=new Uint8Array(bytes);let binary="";for(let offset=0;offset<view.length;offset+=32768)binary+=String.fromCharCode(...view.subarray(offset,Math.min(offset+32768,view.length)));const base64=btoa(binary);binary="";
+  const schema={type:"object",additionalProperties:false,properties:{observations:{type:"array",maxItems:500,items:{type:"object",additionalProperties:false,properties:{conceptCode:{type:"string"},domain:{type:"string"},valueNumber:{type:["number","null"]},valueText:{type:["string","null"]},unit:{type:["string","null"]},effectiveAt:{type:"string"},source:{type:"string"}},required:["conceptCode","domain","valueNumber","valueText","unit","effectiveAt","source"]}}},required:["observations"]} as const;
+  try {
+    const result=await runAI<{observations?:unknown}>({task:"extract_lab_results",modelClass:"vision",schema,schemaName:"lab_pdf_observations",maxOutputTokens:7000,file:{filename:fileName,mimeType:"application/pdf",dataBase64:base64},input:"Extract every clearly reported laboratory observation from this PDF. Preserve the printed value, unit, collection/result date, and source laboratory. Use stable lowercase snake_case concept codes. Do not infer missing values or convert units.",instructions:"You are a structured laboratory-document extractor. Extract only facts explicitly printed in the supplied document. Never diagnose, recommend, infer an unreported value, or silently normalize a unit. Return only the requested structured object."});
+    const rows=Array.isArray(result.data.observations)?result.data.observations:[];
+    const observations=rows.flatMap((raw):ImportedObservation[]=>{if(!raw||typeof raw!=="object")return[];const item=raw as Record<string,unknown>;const conceptCode=typeof item.conceptCode==="string"?item.conceptCode.trim().toLowerCase():"";const domain=typeof item.domain==="string"?item.domain.trim().toLowerCase():"";const valueNumber=typeof item.valueNumber==="number"&&Number.isFinite(item.valueNumber)?item.valueNumber:null;const valueText=typeof item.valueText==="string"?item.valueText.trim():undefined;if(!/^[a-z0-9_:-]{2,80}$/.test(conceptCode)||!domain||valueNumber===null&&!valueText)return[];const effectiveAt=typeof item.effectiveAt==="string"&&!Number.isNaN(Date.parse(item.effectiveAt))?new Date(item.effectiveAt).toISOString():nowIso();return[{conceptCode,domain,valueNumber,valueText,unit:typeof item.unit==="string"?item.unit.trim():undefined,effectiveAt,source:typeof item.source==="string"&&item.source.trim()?item.source.trim():"Uploaded laboratory PDF",quality:"needs_review",metadata:{parser:"ai-pdf-v2",model:result.model,requestId:result.requestId,originalFile:fileName}}];});
+    return {observations,wearableDays:[]};
+  } catch { return { observations: [], wearableDays: [] }; }
 }
 
 async function syncWearableObservations(db: D1Database, memberId: string, days: Array<{ provider: string }>, now: string) {

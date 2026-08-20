@@ -3,7 +3,10 @@ import { env } from "cloudflare:workers";
 export type RuntimeConfig = {
   RAZORPAY_KEY_ID?: string; RAZORPAY_KEY_SECRET?: string; RAZORPAY_WEBHOOK_SECRET?: string;
   OPEN_WEARABLES_URL?: string; OPEN_WEARABLES_API_KEY?: string; OPEN_WEARABLES_WEBHOOK_SECRET?: string;
-  AI_GATEWAY_URL?: string; AI_GATEWAY_TOKEN?: string;
+  AI_GATEWAY_URL?: string; AI_GATEWAY_TOKEN?: string; OPENAI_API_KEY?: string;
+  AI_PRIMARY_MODEL?: string; AI_FAST_MODEL?: string; AI_VISION_MODEL?: string;
+  AI_FALLBACK_URL?: string; AI_FALLBACK_TOKEN?: string; AI_FALLBACK_MODEL?: string;
+  AI_TIMEOUT_MS?: string; AI_REASONING_EFFORT?: string;
   LAB_ADAPTER_URL?: string; LAB_ADAPTER_API_KEY?: string; LAB_ADAPTER_WEBHOOK_SECRET?: string;
   ABDM_GATEWAY_URL?: string; ABDM_CLIENT_ID?: string;
 };
@@ -27,10 +30,11 @@ export function timingSafeEqual(left: string, right: string) {
 
 export function integrationHealth() {
   const config = runtimeConfig();
+  const aiConfigured = Boolean((config.AI_GATEWAY_URL || config.OPENAI_API_KEY) && (config.OPENAI_API_KEY || config.AI_GATEWAY_TOKEN));
   return {
     razorpay: { mode: config.RAZORPAY_KEY_ID && config.RAZORPAY_KEY_SECRET ? "live" : "sandbox", ready: Boolean(config.RAZORPAY_KEY_ID && config.RAZORPAY_KEY_SECRET) },
     openWearables: { mode: config.OPEN_WEARABLES_URL && config.OPEN_WEARABLES_API_KEY ? "live" : "sandbox", ready: Boolean(config.OPEN_WEARABLES_URL && config.OPEN_WEARABLES_API_KEY) },
-    ai: { mode: config.AI_GATEWAY_URL ? "live" : "grounded-rules", ready: Boolean(config.AI_GATEWAY_URL) },
+    ai: { mode: aiConfigured ? (config.AI_GATEWAY_URL ? "gateway" : "direct-openai") : "grounded-rules", ready: aiConfigured, model: config.AI_PRIMARY_MODEL ?? "gpt-5.6", fallback: Boolean(config.AI_FALLBACK_URL && config.AI_FALLBACK_TOKEN) },
     labAdapter: { mode: config.LAB_ADAPTER_URL && config.LAB_ADAPTER_API_KEY ? "live" : "sandbox", ready: Boolean(config.LAB_ADAPTER_URL && config.LAB_ADAPTER_API_KEY) },
     garmin: { mode: config.OPEN_WEARABLES_URL && config.OPEN_WEARABLES_API_KEY ? "approved-gateway" : "import-fallback", ready: Boolean(config.OPEN_WEARABLES_URL && config.OPEN_WEARABLES_API_KEY) },
     abdm: { mode: config.ABDM_GATEWAY_URL && config.ABDM_CLIENT_ID ? "configured" : "optional", ready: Boolean(config.ABDM_GATEWAY_URL && config.ABDM_CLIENT_ID) },
