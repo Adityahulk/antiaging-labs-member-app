@@ -57,6 +57,7 @@ export async function ensureMemberSeed(identity: MemberIdentity): Promise<void> 
   if (existing) {
     await database.prepare("UPDATE members SET email = ?, full_name = ?, updated_at = ? WHERE id = ?").bind(identity.email, identity.fullName, now, identity.id).run();
     await ensurePhaseOneSeed(database, identity, now);
+    await ensurePhaseThreeSeed(database, identity, now);
     return;
   }
 
@@ -83,7 +84,15 @@ export async function ensureMemberSeed(identity: MemberIdentity): Promise<void> 
 
   await database.batch(statements);
   await ensurePhaseOneSeed(database, identity, now);
+  await ensurePhaseThreeSeed(database, identity, now);
   await database.prepare("PRAGMA optimize").run();
+}
+
+async function ensurePhaseThreeSeed(database:D1Database,identity:MemberIdentity,now:string){
+  const statements:D1PreparedStatement[]=[database.prepare("INSERT OR IGNORE INTO member_jurisdictions (member_id,country_code,region_code,policy_version,features_json,updated_at) VALUES (?,'IN','TG','IN-v1',?,?)").bind(identity.id,JSON.stringify({research:true,experiments:true,abdm:"optional",nativeHealth:true}),now)];
+  const targets=[["sleep_minutes","Sleep duration"],["resting_hr","Resting heart rate"],["apob","ApoB"]] as const;
+  for(const[target,label]of targets) statements.push(database.prepare("INSERT OR IGNORE INTO response_model_versions (id,target_code,version,status,feature_codes_json,coefficients_json,training_window_json,metrics_json,calibration_json,subgroup_json,abstention_json,data_snapshot_hash,created_at,published_at) VALUES (?,?,1,'collecting',?,'{}','{}',?,'{}','{}',?,'contract-only',?,NULL)").bind(`model_contract_${target}`,target,JSON.stringify(["baseline","protocol_adherence","data_quality"]),JSON.stringify({n:0,trainN:0,testN:0,mae:0,rmse:0,r2:0,label}),JSON.stringify({gateReasons:["Prospective validation outcomes are still being collected"],outOfRange:true,missingInputs:true}),now));
+  await database.batch(statements);
 }
 
 async function ensurePhaseOneSeed(database: D1Database, identity: MemberIdentity, now: string) {

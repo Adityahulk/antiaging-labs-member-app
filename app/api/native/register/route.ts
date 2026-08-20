@@ -1,0 +1,2 @@
+import { registerCompanion } from "@/lib/native-health";
+export async function POST(request:Request){try{const body=await request.json() as {pairingCode:string;platform:"ios"|"android";deviceName:string;appVersion:string};return Response.json(await registerCompanion(body),{status:201});}catch(error){return Response.json({error:error instanceof Error?error.message:"Registration failed"},{status:400});}}

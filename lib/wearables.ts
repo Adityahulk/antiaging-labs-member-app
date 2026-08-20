@@ -30,6 +30,24 @@ export async function syncWearable(memberId: string, provider: string) {
   for (const metric of metrics) statements.push(db.prepare("INSERT INTO observations (id, member_id, concept_code, domain, value_number, value_text, unit, effective_at, source, quality, metadata_json, created_at) VALUES (?, ?, ?, ?, ?, NULL, ?, ?, 'Open Wearables', 'accepted', ?, ?)").bind(id("obs"), memberId, metric.code, metric.domain, metric.value, metric.unit, now, JSON.stringify({ provider, window: metric.window, openWearablesUserId: userId }), now)); await db.batch(statements); return recomputeTwin(memberId);
 }
 
+export async function syncWearableWithTelemetry(memberId: string, provider: string, trigger = "member") {
+  const db = await getDatabase(); const runId = id("connectrun"); const started = Date.now(); const startedAt = nowIso();
+  const connection = await db.prepare("SELECT cursor FROM wearable_connections WHERE member_id=? AND provider=?").bind(memberId, provider).first<{ cursor: string | null }>();
+  await db.prepare("INSERT INTO connector_sync_runs (id,member_id,provider,trigger,status,cursor_before,cursor_after,records_read,records_written,latency_ms,error_code,started_at,completed_at) VALUES (?,?,?,?,'running',?,NULL,0,0,0,NULL,?,NULL)")
+    .bind(runId, memberId, provider, trigger, connection?.cursor ?? null, startedAt).run();
+  try {
+    const result = await syncWearable(memberId, provider);
+    const after = await db.prepare("SELECT cursor FROM wearable_connections WHERE member_id=? AND provider=?").bind(memberId, provider).first<{ cursor: string | null }>();
+    await db.prepare("UPDATE connector_sync_runs SET status='completed',cursor_after=?,records_written=1,latency_ms=?,completed_at=? WHERE id=?")
+      .bind(after?.cursor ?? null, Date.now() - started, nowIso(), runId).run();
+    return result;
+  } catch (error) {
+    await db.prepare("UPDATE connector_sync_runs SET status='failed',latency_ms=?,error_code=?,completed_at=? WHERE id=?")
+      .bind(Date.now() - started, error instanceof Error ? error.message.slice(0, 80) : "sync_failed", nowIso(), runId).run();
+    throw error;
+  }
+}
+
 export async function disconnectWearable(memberId: string, provider: string) { const db = await getDatabase(); const profile = await db.prepare("SELECT external_user_id FROM wearable_connections WHERE member_id = ? AND provider = 'open_wearables_profile'").bind(memberId).first<{ external_user_id: string }>(); if (profile?.external_user_id && integrationHealth().openWearables.mode === "live") await openWearablesRequest(`/users/${encodeURIComponent(profile.external_user_id)}/connections/${encodeURIComponent(provider)}`, { method: "DELETE" }); await db.prepare("UPDATE wearable_connections SET status = 'disconnected', last_sync_at = NULL, updated_at = ? WHERE member_id = ? AND provider = ?").bind(nowIso(), memberId, provider).run(); return { provider, status: "disconnected" }; }
 
 function extractSummaryMetrics(recovery: unknown, sleep: unknown, activity: unknown) { const flat = JSON.stringify({ recovery, sleep, activity }); const get = (keys: string[]) => { for (const key of keys) { const match = new RegExp(`"${key}"\\s*:\\s*(-?\\d+(?:\\.\\d+)?)`, "i").exec(flat); if (match) return Number(match[1]); } return null; }; return [{ code: "hrv_rmssd_28d", domain: "recovery", value: get(["hrv_rmssd", "hrv", "average_hrv"]), unit: "ms", window: "summary" }, { code: "resting_hr_28d", domain: "recovery", value: get(["resting_heart_rate", "resting_hr"]), unit: "bpm", window: "summary" }, { code: "sleep_duration_28d", domain: "sleep", value: get(["sleep_duration_hours", "average_sleep_hours"]), unit: "hours", window: "summary" }, { code: "daily_steps_28d", domain: "activity", value: get(["average_steps", "steps"]), unit: "steps", window: "summary" }].filter((metric): metric is { code: string; domain: string; value: number; unit: string; window: string } => metric.value !== null); }

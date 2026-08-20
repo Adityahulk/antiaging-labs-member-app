@@ -14,6 +14,8 @@ declare namespace Cloudflare {
     LAB_ADAPTER_URL?: string;
     LAB_ADAPTER_API_KEY?: string;
     LAB_ADAPTER_WEBHOOK_SECRET?: string;
+    ABDM_GATEWAY_URL?: string;
+    ABDM_CLIENT_ID?: string;
   }
 }
 type Env = Cloudflare.Env;

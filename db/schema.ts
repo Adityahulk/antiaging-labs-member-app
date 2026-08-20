@@ -279,3 +279,59 @@ export const chatReviews = sqliteTable("chat_reviews", {
 export const labIntegrationEvents = sqliteTable("lab_integration_events", {
   id: text("id").primaryKey(), memberId: text("member_id").notNull(), orderId: text("order_id"), provider: text("provider").notNull(), externalReference: text("external_reference"), eventType: text("event_type").notNull(), idempotencyKey: text("idempotency_key").notNull(), status: text("status").notNull(), payloadJson: text("payload_json").notNull(), createdAt: text("created_at").notNull(), processedAt: text("processed_at"),
 }, (table) => [uniqueIndex("idx_lab_events_provider_idempotency").on(table.provider, table.idempotencyKey), index("idx_lab_events_member_created").on(table.memberId, table.createdAt)]);
+
+export const companionPairingCodes = sqliteTable("companion_pairing_codes", {
+  id: text("id").primaryKey(), memberId: text("member_id").notNull(), codeHash: text("code_hash").notNull(), platform: text("platform").notNull(), expiresAt: text("expires_at").notNull(), consumedAt: text("consumed_at"), createdAt: text("created_at").notNull(),
+}, (table) => [uniqueIndex("idx_pairing_code_hash").on(table.codeHash), index("idx_pairing_member_expiry").on(table.memberId, table.expiresAt)]);
+
+export const deviceInstallations = sqliteTable("device_installations", {
+  id: text("id").primaryKey(), memberId: text("member_id").notNull(), platform: text("platform").notNull(), deviceName: text("device_name").notNull(), appVersion: text("app_version").notNull(), tokenHash: text("token_hash").notNull(), status: text("status").notNull(), lastSyncAt: text("last_sync_at"), lastCursor: text("last_cursor"), createdAt: text("created_at").notNull(), updatedAt: text("updated_at").notNull(),
+}, (table) => [uniqueIndex("idx_installation_token_hash").on(table.tokenHash), index("idx_installations_member_status").on(table.memberId, table.status)]);
+
+export const nativeSyncBatches = sqliteTable("native_sync_batches", {
+  id: text("id").primaryKey(), installationId: text("installation_id").notNull(), memberId: text("member_id").notNull(), idempotencyKey: text("idempotency_key").notNull(), platformCursor: text("platform_cursor"), sampleCount: integer("sample_count").notNull(), insertedCount: integer("inserted_count").notNull(), deletedCount: integer("deleted_count").notNull(), status: text("status").notNull(), error: text("error"), receivedAt: text("received_at").notNull(), completedAt: text("completed_at"),
+}, (table) => [uniqueIndex("idx_native_batch_installation_key").on(table.installationId, table.idempotencyKey), index("idx_native_batch_member_time").on(table.memberId, table.receivedAt)]);
+
+export const nativeHealthSamples = sqliteTable("native_health_samples", {
+  id: text("id").primaryKey(), installationId: text("installation_id").notNull(), memberId: text("member_id").notNull(), platform: text("platform").notNull(), externalId: text("external_id").notNull(), typeCode: text("type_code").notNull(), valueNumber: real("value_number"), unit: text("unit"), startAt: text("start_at").notNull(), endAt: text("end_at").notNull(), timezone: text("timezone").notNull(), sourceName: text("source_name").notNull(), sourceBundle: text("source_bundle").notNull(), deviceJson: text("device_json").notNull(), metadataJson: text("metadata_json").notNull(), deletedAt: text("deleted_at"), createdAt: text("created_at").notNull(), updatedAt: text("updated_at").notNull(),
+}, (table) => [uniqueIndex("idx_native_sample_installation_external").on(table.installationId, table.externalId), index("idx_native_samples_member_type_time").on(table.memberId, table.typeCode, table.startAt)]);
+
+export const connectorSyncRuns = sqliteTable("connector_sync_runs", {
+  id: text("id").primaryKey(), memberId: text("member_id"), provider: text("provider").notNull(), trigger: text("trigger").notNull(), status: text("status").notNull(), cursorBefore: text("cursor_before"), cursorAfter: text("cursor_after"), recordsRead: integer("records_read").notNull(), recordsWritten: integer("records_written").notNull(), latencyMs: integer("latency_ms").notNull(), errorCode: text("error_code"), startedAt: text("started_at").notNull(), completedAt: text("completed_at"),
+}, (table) => [index("idx_connector_runs_provider_time").on(table.provider, table.startedAt), index("idx_connector_runs_member_time").on(table.memberId, table.startedAt)]);
+
+export const researchConsents = sqliteTable("research_consents", {
+  id: text("id").primaryKey(), memberId: text("member_id").notNull(), noticeVersion: text("notice_version").notNull(), granted: integer("granted", { mode: "boolean" }).notNull(), scopesJson: text("scopes_json").notNull(), grantedAt: text("granted_at"), revokedAt: text("revoked_at"), createdAt: text("created_at").notNull(), updatedAt: text("updated_at").notNull(),
+}, (table) => [uniqueIndex("idx_research_consent_member").on(table.memberId)]);
+
+export const outcomeMeasurements = sqliteTable("outcome_measurements", {
+  id: text("id").primaryKey(), memberId: text("member_id").notNull(), targetCode: text("target_code").notNull(), windowCode: text("window_code").notNull(), baselineValue: real("baseline_value").notNull(), currentValue: real("current_value").notNull(), absoluteChange: real("absolute_change").notNull(), percentChange: real("percent_change"), unit: text("unit").notNull(), baselineAt: text("baseline_at").notNull(), currentAt: text("current_at").notNull(), adherence: real("adherence"), quality: real("quality").notNull(), sourceRefsJson: text("source_refs_json").notNull(), computedAt: text("computed_at").notNull(),
+}, (table) => [uniqueIndex("idx_outcome_member_target_window").on(table.memberId, table.targetCode, table.windowCode), index("idx_outcome_target_time").on(table.targetCode, table.computedAt)]);
+
+export const responseModelVersions = sqliteTable("response_model_versions", {
+  id: text("id").primaryKey(), targetCode: text("target_code").notNull(), version: integer("version").notNull(), status: text("status").notNull(), featureCodesJson: text("feature_codes_json").notNull(), coefficientsJson: text("coefficients_json").notNull(), trainingWindowJson: text("training_window_json").notNull(), metricsJson: text("metrics_json").notNull(), calibrationJson: text("calibration_json").notNull(), subgroupJson: text("subgroup_json").notNull(), abstentionJson: text("abstention_json").notNull(), dataSnapshotHash: text("data_snapshot_hash").notNull(), createdAt: text("created_at").notNull(), publishedAt: text("published_at"),
+}, (table) => [uniqueIndex("idx_response_model_target_version").on(table.targetCode, table.version), index("idx_response_model_target_status").on(table.targetCode, table.status)]);
+
+export const responsePredictions = sqliteTable("response_predictions", {
+  id: text("id").primaryKey(), memberId: text("member_id").notNull(), modelVersionId: text("model_version_id").notNull(), targetCode: text("target_code").notNull(), estimate: real("estimate"), lowerBound: real("lower_bound"), upperBound: real("upper_bound"), confidence: real("confidence").notNull(), status: text("status").notNull(), abstentionReason: text("abstention_reason"), featureSnapshotJson: text("feature_snapshot_json").notNull(), createdAt: text("created_at").notNull(),
+}, (table) => [index("idx_predictions_member_target_time").on(table.memberId, table.targetCode, table.createdAt)]);
+
+export const responseModelEvaluations = sqliteTable("response_model_evaluations", {
+  id: text("id").primaryKey(), modelVersionId: text("model_version_id").notNull(), studyId: text("study_id").notNull(), datasetHash: text("dataset_hash").notNull(), cohortN: integer("cohort_n").notNull(), metricsJson: text("metrics_json").notNull(), calibrationJson: text("calibration_json").notNull(), subgroupJson: text("subgroup_json").notNull(), status: text("status").notNull(), evaluatorId: text("evaluator_id").notNull(), createdAt: text("created_at").notNull(),
+}, (table) => [uniqueIndex("idx_model_evaluation_study").on(table.modelVersionId, table.studyId), index("idx_model_evaluation_status").on(table.status, table.createdAt)]);
+
+export const experiments = sqliteTable("experiments", {
+  id: text("id").primaryKey(), memberId: text("member_id").notNull(), templateCode: text("template_code").notNull(), title: text("title").notNull(), hypothesis: text("hypothesis").notNull(), primaryOutcome: text("primary_outcome").notNull(), unit: text("unit").notNull(), status: text("status").notNull(), design: text("design").notNull(), startAt: text("start_at").notNull(), endAt: text("end_at").notNull(), protocolSnapshotId: text("protocol_snapshot_id"), resultJson: text("result_json").notNull(), createdAt: text("created_at").notNull(), updatedAt: text("updated_at").notNull(),
+}, (table) => [index("idx_experiments_member_status").on(table.memberId, table.status)]);
+
+export const experimentPeriods = sqliteTable("experiment_periods", {
+  id: text("id").primaryKey(), experimentId: text("experiment_id").notNull(), memberId: text("member_id").notNull(), day: text("day").notNull(), arm: text("arm").notNull(), instruction: text("instruction").notNull(), completed: integer("completed", { mode: "boolean" }).notNull(), adherence: real("adherence"), outcomeValue: real("outcome_value"), contextJson: text("context_json").notNull(), updatedAt: text("updated_at").notNull(),
+}, (table) => [uniqueIndex("idx_experiment_period_day").on(table.experimentId, table.day), index("idx_experiment_period_member_day").on(table.memberId, table.day)]);
+
+export const memberJurisdictions = sqliteTable("member_jurisdictions", {
+  memberId: text("member_id").primaryKey(), countryCode: text("country_code").notNull(), regionCode: text("region_code").notNull(), policyVersion: text("policy_version").notNull(), featuresJson: text("features_json").notNull(), updatedAt: text("updated_at").notNull(),
+});
+
+export const fhirExports = sqliteTable("fhir_exports", {
+  id: text("id").primaryKey(), memberId: text("member_id").notNull(), standard: text("standard").notNull(), profileVersion: text("profile_version").notNull(), purpose: text("purpose").notNull(), bundleHash: text("bundle_hash").notNull(), objectKey: text("object_key"), status: text("status").notNull(), destination: text("destination"), createdAt: text("created_at").notNull(),
+}, (table) => [index("idx_fhir_exports_member_time").on(table.memberId, table.createdAt)]);

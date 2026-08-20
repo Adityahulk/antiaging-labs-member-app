@@ -20,6 +20,8 @@ export type AppData = {
   dailyAdjustment: Record<string, unknown> | null;
   wearableConnections: Array<Record<string, unknown>>;
   integrations: Record<string, { mode: string; ready: boolean }>;
+  phase3: { outcomes: Array<Record<string, unknown>>; researchConsent: (Record<string, unknown> & { granted: boolean }) | null; companions: Array<Record<string, unknown>>; experiments: Array<Record<string, unknown>>; predictions: Array<Record<string, unknown>>; jurisdiction: Record<string, unknown> };
+  interoperability: Record<string, { mode?: string; standard?: string; profile?: string; ready: boolean }>;
 };
 
 type ContextValue = { data: AppData | null; loading: boolean; refresh: () => Promise<void>; toggleAction: (id: number, done: boolean) => Promise<void> };
