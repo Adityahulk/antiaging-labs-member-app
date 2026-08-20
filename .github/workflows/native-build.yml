@@ -48,7 +48,7 @@ jobs:
         run: gradle --no-daemon :app:assembleDebug :app:bundleDebug
 
       - name: Upload Android debug artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: antiaging-companion-android-debug-${{ github.sha }}
           path: |
@@ -86,7 +86,7 @@ jobs:
         run: ditto -c -k --sequesterRsrc --keepParent native/ios/DerivedData/Build/Products/Debug-iphonesimulator/AntiagingCompanion.app native/ios/AntiagingCompanion-simulator.zip
 
       - name: Upload iOS simulator artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: antiaging-companion-ios-simulator-${{ github.sha }}
           path: native/ios/AntiagingCompanion-simulator.zip
