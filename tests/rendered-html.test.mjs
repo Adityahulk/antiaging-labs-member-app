@@ -38,7 +38,7 @@ test("contains Phase 1A operational workflows", async () => {
   assert.match(upload, /processUpload/);
   assert.match(reports, /status = 'ready'/);
   assert.match(protocol, /status = 'current'/);
-  assert.match(admin, /FULFILLMENT QUEUE/);
+  assert.match(admin, /CONCIERGE FULFILLMENT/);
 });
 
 test("contains Phase 1B wearable fusion and daily adaptation", async () => {
@@ -209,4 +209,35 @@ test("configures the Worker background processing trigger", async () => {
   assert.match(worker, /async scheduled/);
   assert.match(jobs, /syncWearableWithTelemetry/);
   assert.match(jobs, /runPhase3Jobs/);
+});
+
+test("ships closed-alpha auth without automatic production demo or first-user admin", async () => {
+  const [member, seed, gate, shell, env] = await Promise.all([
+    file("lib/member.ts"), file("lib/seed.ts"), file("app/auth-gate.tsx"), file("components/member-shell.tsx"), file(".env.example"),
+  ]);
+  assert.match(member, /ALLOW_DEMO_AUTH === "true"/);
+  assert.match(member, /Authentication required/);
+  assert.doesNotMatch(seed, /memberCount.*<= 1/);
+  assert.match(seed, /ADMIN_EMAILS/);
+  assert.match(seed, /SEED_DEMO_DATA/);
+  assert.match(gate, /Sign in securely/);
+  assert.match(shell, /signout-with-chatgpt/);
+  assert.match(env, /ADMIN_EMAILS/);
+});
+
+test("supports manual concierge fulfillment and verified D1 backups", async () => {
+  const [orderRoute, ui, backups, daily, schema, migration] = await Promise.all([
+    file("app/api/admin/orders/[id]/route.ts"), file("components/workflow-experiences.tsx"), file("lib/backups.ts"), file("lib/daily-jobs.ts"), file("db/schema.ts"), file("drizzle/0005_friendly_dexter_bennett.sql"),
+  ]);
+  assert.match(orderRoute, /externalReference/);
+  assert.match(orderRoute, /publicMessage/);
+  assert.match(orderRoute, /internalNote/);
+  assert.match(ui, /Manage booking details/);
+  assert.match(ui, /Tracking link/);
+  assert.doesNotMatch(ui, /Send to lab/);
+  assert.match(backups, /system-backups\/d1/);
+  assert.match(backups, /verifyDatabaseBackup/);
+  assert.match(daily, /maybeCreateScheduledBackup/);
+  assert.match(schema, /backupRuns/);
+  assert.match(migration, /CREATE TABLE `backup_runs`/);
 });

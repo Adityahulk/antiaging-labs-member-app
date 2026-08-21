@@ -7,7 +7,9 @@ Last reviewed: 20 August 2026.
 - The web/PWA, API, D1 schema, R2 upload paths, Phase 1A/1B workflows, Phase 2 genetics/supervised intelligence, and Phase 3 native pairing/outcomes/experiments/model-validation/FHIR features are implemented.
 - The Sites deployment is live as a private authenticated build at `https://antiaging-labs-member.merry-loom-0538.chatgpt.site` with D1 binding `DB` and R2 binding `UPLOADS`.
 - The desired public application origin `https://app.antiaging-labs.com` is the native default, but its DNS/custom-domain routing is not yet complete.
-- Without live credentials, payments, wearables, AI drafting, and lab fulfillment deliberately use sandbox, deterministic, or import modes.
+- Without live credentials, payments, wearables and AI drafting deliberately use sandbox, deterministic or import modes. Lab/genetics ordering is intentionally concierge-operated for the first cohort.
+- Closed-alpha Sites/ChatGPT authentication is implemented with explicit admin/practitioner email allowlists; production demo identity and demo health seeding are disabled by environment.
+- D1/R2 are bound, and the admin can create checksum-verified D1 backup manifests in R2; the daily worker ensures a recent verified copy exists.
 - GitHub Actions now validate the web app, build Android debug APK/AAB files, build an iOS simulator application, and produce signed Android/iOS release artifacts when signing secrets are configured.
 
 ## External integration matrix
@@ -15,7 +17,7 @@ Last reviewed: 20 August 2026.
 | System | Code path/status | Values or approvals still required |
 |---|---|---|
 | Cloudflare/Sites | D1 `DB` and R2 `UPLOADS` are deployed; build is private | Bind `app.antiaging-labs.com`, finish DNS/TLS, set runtime secrets, migrate/seed production data, define backup/restore and log alerting |
-| Member authentication | Private Sites identity headers work for the current build; localhost uses a demo identity | Choose customer production identity (Cognito, Auth0, Clerk, or equivalent), implement OTP/passkey recovery and staff MFA, disable the synthetic fallback outside local development, and validate tenant/role provisioning |
+| Member authentication | Sites/ChatGPT sign-in, anonymous gate, server-side ownership, explicit staff allowlists and production-safe seeding are implemented | Owner approval to make the Site publicly reachable for the cohort; members need ChatGPT accounts. Standalone OTP can wait until after alpha |
 | Razorpay | Checkout order creation, signature verification, webhook inbox, refund idempotency, and sandbox fallback exist | Live account/KYC, `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET`; register `/api/webhooks/razorpay`; verify live capture/refund/reconciliation |
 | Open Wearables | Oura, WHOOP, and approved Garmin adapter paths plus webhook verification exist | Deploy or contract an Open Wearables instance; `OPEN_WEARABLES_URL`, `OPEN_WEARABLES_API_KEY`, `OPEN_WEARABLES_WEBHOOK_SECRET`; configure its provider credentials and callback URLs |
 | Oura | Connect/sync/disconnect flows work through Open Wearables | Oura client ID/secret, production application approval and redirect URL; written data-use decision before Oura data or derivatives enter AI prompts/evaluation |
@@ -23,7 +25,7 @@ Last reviewed: 20 August 2026.
 | Apple Health / Apple Watch | Direct on-device HealthKit companion source, Xcode project, entitlement, privacy manifest, CI simulator build and signed-IPA workflow exist | Apple Developer membership, Team ID, registered bundle ID, HealthKit capability, distribution certificate/profile, physical-device QA, App Store Connect record and review |
 | Android Health Connect | Direct on-device connector, runtime permissions, encrypted token, incremental sync and WorkManager reconciliation exist | Google Play Developer account, upload/app-signing key, Health Connect declaration and permission approval, physical-device QA and closed-track review |
 | Garmin | File import exists; direct gateway route is adapter-ready | Garmin Health API business approval/licence and credentials in the gateway, or retain file-import mode |
-| Lab/genetics fulfillment | Vendor-neutral order adapter, signed webhook path, PDF/raw-file ingestion and verification queues exist | Select vendors and contract data/sample custody; `LAB_ADAPTER_URL`, `LAB_ADAPTER_API_KEY`, `LAB_ADAPTER_WEBHOOK_SECRET`; map each vendor SKU/status/result schema; test critical-result callbacks |
+| Lab/genetics fulfillment | Full manual concierge console now captures provider, vendor reference, appointment, ETA, tracking, instructions, public updates, private notes and modality-specific statuses | Admin books externally and updates the console. Lab API selection, credentials and automated submission are deferred |
 | AI model | Central Responses-compatible gateway, strict schemas, retries/timeouts/failover, grounded chat, review-gated PDF extraction, audit labels and deterministic fallbacks are implemented | Add an OpenAI project key and preferably a Cloudflare AI Gateway URL/token; set runtime secrets and budgets; run the activation checklist in `docs/AI_GATEWAY.md` |
 | ABDM/FHIR | FHIR R4 export is implemented; ABDM is optional/configuration-only | ABDM sandbox registration, `ABDM_GATEWAY_URL`, `ABDM_CLIENT_ID` and any production secret/certificate required by the selected gateway; conformance/security testing |
 | Notifications | In-app messages/status exist | Select email/SMS/WhatsApp vendors, add templates/consent/delivery webhooks, and configure sender/domain/KYC credentials. No production outbound provider is implemented yet |
@@ -42,10 +44,10 @@ Last reviewed: 20 August 2026.
 
 ## Deployment sequence
 
-1. **Domain and identity:** attach `app.antiaging-labs.com`; choose production customer auth; remove the production demo-user fallback; provision member/staff roles and MFA.
-2. **Data environment:** create isolated production D1/R2 bindings, apply every migration in order, seed only the approved catalog/rule/evidence versions, and test restore plus signed-URL expiry.
-3. **Server secrets:** add Razorpay, Open Wearables, AI gateway, and lab-adapter credentials through the hosting secret store. Never put them in client bundles or GitHub variables.
-4. **Provider callbacks:** register Razorpay, Open Wearables/Oura/WHOOP, and lab webhook URLs; replay duplicate, delayed, invalid-signature, and out-of-order fixtures.
+1. **Domain and identity:** attach `app.antiaging-labs.com`; approve public cohort access with the application sign-in gate; maintain `ADMIN_EMAILS` and `PRACTITIONER_EMAILS`.
+2. **Data environment:** D1/R2 bindings, migrations and verified weekly application backups are implemented. Before broad launch, rehearse restore into a separate staging database and define a longer-term backup policy.
+3. **Server secrets:** add Razorpay, Open Wearables and AI gateway credentials through the hosting secret store. Never put them in client bundles or GitHub variables.
+4. **Provider callbacks:** register Razorpay and Open Wearables/Oura/WHOOP webhook URLs; replay duplicate, delayed, invalid-signature and out-of-order fixtures. Lab callbacks are deferred.
 5. **Native accounts:** register `com.antiaginglabs.companion` in Apple and Google portals, enable HealthKit/Health Connect declarations, create signing credentials, then run the signed-release workflow.
 6. **Closed alpha:** TestFlight + Google Play internal track, physical Apple Watch/iPhone and Android device matrix, timezone/DST/deletion/revocation/offline tests, and 100% human review of reports/protocols.
 7. **Operational readiness:** staff training, vendor SLAs, notification delivery, monitoring, backup restore, privacy request handling, incident/rollback exercises and support escalation ownership.
@@ -62,7 +64,7 @@ Last reviewed: 20 August 2026.
 
 ## Product and operations items still pending
 
-- Production identity/recovery/staff-access implementation and the removal of demo fallback.
+- Standalone email/phone OTP, account recovery and staff MFA after the Sites-authenticated alpha.
 - Actual live product catalog, GST/invoice rules, serviceability, cancellations, pricing, vendor SKUs and support SLAs.
 - Lab and genetics vendor contracts, ordering integration, result mappings, sample-custody workflow and critical-result channel.
 - Clinician/staff roster, qualifications, queue ownership, approval SLAs and escalation coverage.

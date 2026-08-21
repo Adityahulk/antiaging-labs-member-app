@@ -3,6 +3,11 @@ declare namespace Cloudflare {
     DB: D1Database;
     UPLOADS: R2Bucket;
     ASSETS: Fetcher;
+    APP_ENV?: string;
+    ALLOW_DEMO_AUTH?: string;
+    SEED_DEMO_DATA?: string;
+    ADMIN_EMAILS?: string;
+    PRACTITIONER_EMAILS?: string;
     RAZORPAY_KEY_ID?: string;
     RAZORPAY_KEY_SECRET?: string;
     RAZORPAY_WEBHOOK_SECRET?: string;

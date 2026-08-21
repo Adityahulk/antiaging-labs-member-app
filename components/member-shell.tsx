@@ -53,11 +53,11 @@ export function MemberShell({ children }: { children: ReactNode }) {
           <a href="/journey">Continue journey <span>→</span></a>
         </div>
 
-        <button className="profile-button" type="button">
+        <a className="profile-button" href="/signout-with-chatgpt?return_to=%2F" title="Sign out">
           <span className="avatar">{initials}</span>
           <span><strong>{name}</strong><small>Founding member</small></span>
-          <span className="more">•••</span>
-        </button>
+          <span className="more">SIGN OUT</span>
+        </a>
       </aside>
 
       <main className="main-content subpage-main">{children}</main>

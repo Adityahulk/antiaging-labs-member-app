@@ -114,6 +114,8 @@ const schemaStatements = [
   `CREATE TABLE IF NOT EXISTS member_jurisdictions (member_id TEXT PRIMARY KEY, country_code TEXT NOT NULL, region_code TEXT NOT NULL, policy_version TEXT NOT NULL, features_json TEXT NOT NULL, updated_at TEXT NOT NULL)`,
   `CREATE TABLE IF NOT EXISTS fhir_exports (id TEXT PRIMARY KEY, member_id TEXT NOT NULL, standard TEXT NOT NULL, profile_version TEXT NOT NULL, purpose TEXT NOT NULL, bundle_hash TEXT NOT NULL, object_key TEXT, status TEXT NOT NULL, destination TEXT, created_at TEXT NOT NULL)`,
   `CREATE INDEX IF NOT EXISTS idx_fhir_exports_member_time ON fhir_exports(member_id, created_at)`,
+  `CREATE TABLE IF NOT EXISTS backup_runs (id TEXT PRIMARY KEY, object_key TEXT NOT NULL, status TEXT NOT NULL, table_count INTEGER NOT NULL, row_count INTEGER NOT NULL, bytes INTEGER NOT NULL, checksum_sha256 TEXT NOT NULL, triggered_by TEXT NOT NULL, created_at TEXT NOT NULL, verified_at TEXT, error TEXT)`,
+  `CREATE INDEX IF NOT EXISTS idx_backup_runs_status_created ON backup_runs(status, created_at)`,
 ];
 
 let initialized = false;

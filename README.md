@@ -9,6 +9,7 @@ Private, authenticated member and operations app for longitudinal biomarkers, we
 - Phase 2: raw array/CSV/VCF ingestion, build and call-rate QC, checksummed genomic artifacts, versioned reanalysis, phase-aware APOE handling, genetics report review, four-layer cross-modal fusion, supervised AI report/protocol drafting, grounded chat audit and retrospective review, vendor-neutral lab adapter.
 - Phase 3: direct Apple Health and Android Health Connect pairing/sync, longitudinal outcomes, low-risk n-of-1 experiments, model registry/validation/abstention, FHIR R4 export, and scale-readiness operations.
 - Delivery: GitHub web validation, Android APK/AAB builds, iOS simulator builds, signed native release artifacts, Dependabot, and documented deployment/integration gates.
+- Closed alpha: Sites/ChatGPT sign-in with explicit staff allowlists, concierge-operated test fulfillment, and checksum-verified D1 backups stored in R2.
 
 ## Architecture
 
@@ -33,3 +34,4 @@ The app runs without external credentials in sandbox/deterministic mode. Live Ra
 
 Native build instructions are in [`native/BUILDING.md`](native/BUILDING.md). The exact live-integration and deployment checklist is in [`docs/DEPLOYMENT_AND_INTEGRATIONS.md`](docs/DEPLOYMENT_AND_INTEGRATIONS.md).
 AI routing, models, environment variables, failover and activation tests are documented in [`docs/AI_GATEWAY.md`](docs/AI_GATEWAY.md).
+The exact first-cohort authentication, manual test-booking and backup workflow is in [`docs/CLOSED_ALPHA_SETUP.md`](docs/CLOSED_ALPHA_SETUP.md).

@@ -1,6 +1,8 @@
 import { env } from "cloudflare:workers";
 
 export type RuntimeConfig = {
+  APP_ENV?: string; ALLOW_DEMO_AUTH?: string; SEED_DEMO_DATA?: string;
+  ADMIN_EMAILS?: string; PRACTITIONER_EMAILS?: string;
   RAZORPAY_KEY_ID?: string; RAZORPAY_KEY_SECRET?: string; RAZORPAY_WEBHOOK_SECRET?: string;
   OPEN_WEARABLES_URL?: string; OPEN_WEARABLES_API_KEY?: string; OPEN_WEARABLES_WEBHOOK_SECRET?: string;
   AI_GATEWAY_URL?: string; AI_GATEWAY_TOKEN?: string; OPENAI_API_KEY?: string;
@@ -10,6 +12,10 @@ export type RuntimeConfig = {
   LAB_ADAPTER_URL?: string; LAB_ADAPTER_API_KEY?: string; LAB_ADAPTER_WEBHOOK_SECRET?: string;
   ABDM_GATEWAY_URL?: string; ABDM_CLIENT_ID?: string;
 };
+
+export function configuredEmails(value?: string) {
+  return new Set((value ?? "").split(",").map((email) => email.trim().toLowerCase()).filter(Boolean));
+}
 
 export function runtimeConfig(): RuntimeConfig {
   return env as unknown as RuntimeConfig;

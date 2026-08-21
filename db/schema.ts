@@ -335,3 +335,17 @@ export const memberJurisdictions = sqliteTable("member_jurisdictions", {
 export const fhirExports = sqliteTable("fhir_exports", {
   id: text("id").primaryKey(), memberId: text("member_id").notNull(), standard: text("standard").notNull(), profileVersion: text("profile_version").notNull(), purpose: text("purpose").notNull(), bundleHash: text("bundle_hash").notNull(), objectKey: text("object_key"), status: text("status").notNull(), destination: text("destination"), createdAt: text("created_at").notNull(),
 }, (table) => [index("idx_fhir_exports_member_time").on(table.memberId, table.createdAt)]);
+
+export const backupRuns = sqliteTable("backup_runs", {
+  id: text("id").primaryKey(),
+  objectKey: text("object_key").notNull(),
+  status: text("status").notNull(),
+  tableCount: integer("table_count").notNull(),
+  rowCount: integer("row_count").notNull(),
+  bytes: integer("bytes").notNull(),
+  checksumSha256: text("checksum_sha256").notNull(),
+  triggeredBy: text("triggered_by").notNull(),
+  createdAt: text("created_at").notNull(),
+  verifiedAt: text("verified_at"),
+  error: text("error"),
+}, (table) => [index("idx_backup_runs_status_created").on(table.status, table.createdAt)]);
