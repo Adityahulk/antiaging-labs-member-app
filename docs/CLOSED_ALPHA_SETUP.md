@@ -53,6 +53,7 @@ The alpha now also has verified D1 backups:
 - it verifies checksum, table count, row count and manifest format;
 - it records the result in `backup_runs`;
 - the daily worker creates a backup automatically when no verified backup exists from the previous six days.
+- a server-only `BACKUP_RUN_KEY` permits an authenticated maintenance trigger without granting a member or browser session access. Keep it in Sites secrets only.
 
 This is an application-level recovery copy suitable for the small alpha. Before a larger production launch, restore a verified manifest into a separate staging D1 database and compare member/order/observation counts before adopting it as a full disaster-recovery procedure. A restore is intentionally never run against the live database from the admin UI.
 

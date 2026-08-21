@@ -8,6 +8,7 @@ declare namespace Cloudflare {
     SEED_DEMO_DATA?: string;
     ADMIN_EMAILS?: string;
     PRACTITIONER_EMAILS?: string;
+    BACKUP_RUN_KEY?: string;
     RAZORPAY_KEY_ID?: string;
     RAZORPAY_KEY_SECRET?: string;
     RAZORPAY_WEBHOOK_SECRET?: string;
