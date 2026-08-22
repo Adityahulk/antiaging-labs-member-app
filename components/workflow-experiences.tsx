@@ -118,6 +118,14 @@ export function AdminBackupPanel() {
   const latest=runs[0];return <section className="paper-card backup-panel"><div><span className="card-kicker">DATA RECOVERY</span><h2>Verified database backups</h2><p>{latest?`${latest.status} · ${latest.table_count} tables · ${latest.row_count.toLocaleString()} rows · ${new Date(latest.created_at).toLocaleString()}`:"No backup has run yet."}</p>{notice?<small>{notice}</small>:null}</div><button disabled={busy} onClick={()=>void create()} type="button">{busy?"Backing up…":"Back up now"}</button></section>;
 }
 
+export function BetaRequestsPanel() {
+  const [rows,setRows]=useState<Array<Record<string,unknown>>>([]); const [notice,setNotice]=useState("");
+  const load=()=>fetch("/api/admin/beta-requests",{cache:"no-store"}).then(async r=>r.ok?await r.json() as Array<Record<string,unknown>>:[]).then(setRows);
+  useEffect(()=>{void load();},[]);
+  const decide=async(memberId:string,status:"approved"|"rejected")=>{const r=await fetch("/api/admin/beta-requests",{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({memberId,status})});setNotice(r.ok?`Beta access ${status}.`:"Could not update beta access.");await load();};
+  return <section className="paper-card review-queue"><div className="section-head compact"><div><span className="card-kicker">PRIVATE BETA</span><h2>Access requests</h2></div></div>{rows.map(row=><div className="review-row" key={String(row.member_id)}><span><strong>{String(row.full_name)}</strong><small>{String(row.email)} · {String(row.status)}</small></span>{row.status !== "approved"?<button onClick={()=>void decide(String(row.member_id),"approved")} type="button">Approve</button>:null}{row.status === "pending"?<button onClick={()=>void decide(String(row.member_id),"rejected")} type="button">Reject</button>:null}</div>)}{!rows.length?<p className="empty-copy">No beta access requests.</p>:null}{notice?<small>{notice}</small>:null}</section>;
+}
+
 export function AdminExperience() {
   const [data, setData] = useState<AdminData | null>(null);
   const load = () => fetch("/api/admin/overview", { cache: "no-store" }).then(async (r) => await r.json() as AdminData).then(setData);
