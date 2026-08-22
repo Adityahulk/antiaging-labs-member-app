@@ -4,18 +4,18 @@ Last reviewed: 22 August 2026.
 
 ## Authentication selected for the first cohort
 
-The first cohort uses Sites/ChatGPT sign-in. This is the smallest efficient option because it adds no separate auth vendor, SMS bill, password database, or OAuth secret. Each signed-in person receives a stable Site-specific ID and the server keeps every member query scoped to that ID.
+The first cohort uses first-party email/password sign-in. It is served by the app itself with PBKDF2 password hashing, an HttpOnly secure session cookie, and D1-backed session expiry. No ChatGPT account, SMS vendor, or external identity provider is required.
 
 Production behavior:
 
-- anonymous requests see the sign-in screen;
+- anonymous requests see the sign-in/create-account screen;
 - API requests without an authenticated identity receive `401`;
 - local demo access works only when `ALLOW_DEMO_AUTH=true` is explicitly set;
 - new production accounts receive empty onboarding records, not Arjun's demonstration health data;
 - admin and practitioner access comes only from `ADMIN_EMAILS` and `PRACTITIONER_EMAILS` allowlists or an existing explicit database role;
 - a first member is never automatically promoted to administrator.
 
-For the private owner build, Sites already authenticates the owner. To invite the founding cohort, the Site must later be made public with the application sign-in gate still enabled. That access change requires the owner's explicit approval. Every cohort member will need a ChatGPT account. A standalone email/phone OTP provider can replace this after the alpha without changing member ownership in the health tables, provided an account-linking migration is planned.
+The Sites access policy is public so the application login screen can be reached from the custom domain. Health data and all API routes remain session-scoped. Existing members can attach a password to their existing email record during account creation; member ownership and staff roles are preserved.
 
 ## Manual test fulfillment
 

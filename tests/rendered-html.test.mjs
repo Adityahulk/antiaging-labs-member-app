@@ -64,6 +64,7 @@ test("includes deployable migrations and all core routes", async () => {
     "drizzle/0000_brave_ozymandias.sql",
     "drizzle/0001_modern_mandrill.sql",
     "drizzle/0002_absurd_starjammers.sql",
+    "drizzle/0006_swift_senator_kelly.sql",
     "app/api/twin/recompute/route.ts",
     "app/api/reports/generate/route.ts",
     "app/api/protocols/generate/route.ts",
@@ -71,7 +72,7 @@ test("includes deployable migrations and all core routes", async () => {
     "app/admin/clients/[id]/page.tsx",
   ];
   await Promise.all(required.map((path) => access(new URL(path, root))));
-  assert.equal(required.length, 8);
+  assert.equal(required.length, 9);
 });
 
 test("contains Phase 2 genomic ingestion, cross-modal fusion, and supervised drafting", async () => {
@@ -211,18 +212,23 @@ test("configures the Worker background processing trigger", async () => {
   assert.match(jobs, /runPhase3Jobs/);
 });
 
-test("ships closed-alpha auth without automatic production demo or first-user admin", async () => {
-  const [member, seed, gate, shell, env] = await Promise.all([
-    file("lib/member.ts"), file("lib/seed.ts"), file("app/auth-gate.tsx"), file("components/member-shell.tsx"), file(".env.example"),
+test("ships first-party auth without automatic production demo or first-user admin", async () => {
+  const [member, seed, gate, shell, env, auth, login, signup] = await Promise.all([
+    file("lib/member.ts"), file("lib/seed.ts"), file("app/auth-gate.tsx"), file("components/member-shell.tsx"), file(".env.example"), file("lib/app-auth.ts"), file("app/api/auth/login/route.ts"), file("app/api/auth/signup/route.ts"),
   ]);
   assert.match(member, /ALLOW_DEMO_AUTH === "true"/);
   assert.match(member, /Authentication required/);
   assert.doesNotMatch(seed, /memberCount.*<= 1/);
   assert.match(seed, /ADMIN_EMAILS/);
   assert.match(seed, /SEED_DEMO_DATA/);
-  assert.match(gate, /Sign in securely/);
-  assert.match(shell, /signout-with-chatgpt/);
+  assert.match(gate, /AuthForm/);
+  assert.match(shell, /auth\/logout/);
+  assert.match(auth, /PBKDF2/);
+  assert.match(auth, /HttpOnly/);
+  assert.match(login, /verifyPassword/);
+  assert.match(signup, /hashPassword/);
   assert.match(env, /ADMIN_EMAILS/);
+  assert.doesNotMatch(gate, /ChatGPT/);
 });
 
 test("supports manual concierge fulfillment and verified D1 backups", async () => {

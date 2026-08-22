@@ -9,7 +9,7 @@ Private, authenticated member and operations app for longitudinal biomarkers, we
 - Phase 2: raw array/CSV/VCF ingestion, build and call-rate QC, checksummed genomic artifacts, versioned reanalysis, phase-aware APOE handling, genetics report review, four-layer cross-modal fusion, supervised AI report/protocol drafting, grounded chat audit and retrospective review, vendor-neutral lab adapter.
 - Phase 3: direct Apple Health and Android Health Connect pairing/sync, longitudinal outcomes, low-risk n-of-1 experiments, model registry/validation/abstention, FHIR R4 export, and scale-readiness operations.
 - Delivery: GitHub web validation, Android APK/AAB builds, iOS simulator builds, signed native release artifacts, Dependabot, and documented deployment/integration gates.
-- Closed alpha: Sites/ChatGPT sign-in with explicit staff allowlists, concierge-operated test fulfillment, and checksum-verified D1 backups stored in R2.
+- Closed alpha: first-party email/password sign-in with explicit staff allowlists, concierge-operated test fulfillment, and checksum-verified D1 backups stored in R2.
 
 ## Architecture
 

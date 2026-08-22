@@ -5,10 +5,10 @@ Last reviewed: 20 August 2026.
 ## Current state
 
 - The web/PWA, API, D1 schema, R2 upload paths, Phase 1A/1B workflows, Phase 2 genetics/supervised intelligence, and Phase 3 native pairing/outcomes/experiments/model-validation/FHIR features are implemented.
-- The Sites deployment is live as a private authenticated build at `https://antiaging-labs-member.merry-loom-0538.chatgpt.site` with D1 binding `DB` and R2 binding `UPLOADS`.
+- The Sites deployment is live at `https://app.antiaging-labs.com` with D1 binding `DB` and R2 binding `UPLOADS`.
 - The desired public application origin `https://app.antiaging-labs.com` is the native default, but its DNS/custom-domain routing is not yet complete.
 - Without live credentials, payments, wearables and AI drafting deliberately use sandbox, deterministic or import modes. Lab/genetics ordering is intentionally concierge-operated for the first cohort.
-- Closed-alpha Sites/ChatGPT authentication is implemented with explicit admin/practitioner email allowlists; production demo identity and demo health seeding are disabled by environment.
+- Closed-alpha first-party email/password authentication is implemented with secure D1-backed sessions and explicit admin/practitioner email allowlists; production demo identity and demo health seeding are disabled by environment.
 - D1/R2 are bound, and the admin can create checksum-verified D1 backup manifests in R2; the daily worker ensures a recent verified copy exists.
 - GitHub Actions now validate the web app, build Android debug APK/AAB files, build an iOS simulator application, and produce signed Android/iOS release artifacts when signing secrets are configured.
 
@@ -17,7 +17,7 @@ Last reviewed: 20 August 2026.
 | System | Code path/status | Values or approvals still required |
 |---|---|---|
 | Cloudflare/Sites | D1 `DB` and R2 `UPLOADS` are deployed; build is private | Bind `app.antiaging-labs.com`, finish DNS/TLS, set runtime secrets, migrate/seed production data, define backup/restore and log alerting |
-| Member authentication | Sites/ChatGPT sign-in, anonymous gate, server-side ownership, explicit staff allowlists and production-safe seeding are implemented | Owner approval to make the Site publicly reachable for the cohort; members need ChatGPT accounts. Standalone OTP can wait until after alpha |
+| Member authentication | First-party email/password sign-in, secure session cookies, anonymous gate, server-side ownership, explicit staff allowlists and production-safe seeding are implemented | Optional email verification, password recovery and standalone OTP can be added after alpha |
 | Razorpay | Checkout order creation, signature verification, webhook inbox, refund idempotency, and sandbox fallback exist | Live account/KYC, `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_WEBHOOK_SECRET`; register `/api/webhooks/razorpay`; verify live capture/refund/reconciliation |
 | Open Wearables | Oura, WHOOP, and approved Garmin adapter paths plus webhook verification exist | Deploy or contract an Open Wearables instance; `OPEN_WEARABLES_URL`, `OPEN_WEARABLES_API_KEY`, `OPEN_WEARABLES_WEBHOOK_SECRET`; configure its provider credentials and callback URLs |
 | Oura | Connect/sync/disconnect flows work through Open Wearables | Oura client ID/secret, production application approval and redirect URL; written data-use decision before Oura data or derivatives enter AI prompts/evaluation |
@@ -64,7 +64,7 @@ Last reviewed: 20 August 2026.
 
 ## Product and operations items still pending
 
-- Standalone email/phone OTP, account recovery and staff MFA after the Sites-authenticated alpha.
+- Email verification, password recovery, rate limiting, and staff MFA after the first alpha.
 - Actual live product catalog, GST/invoice rules, serviceability, cancellations, pricing, vendor SKUs and support SLAs.
 - Lab and genetics vendor contracts, ordering integration, result mappings, sample-custody workflow and critical-result channel.
 - Clinician/staff roster, qualifications, queue ownership, approval SLAs and escalation coverage.

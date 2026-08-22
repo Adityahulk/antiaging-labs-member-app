@@ -9,6 +9,22 @@ export const members = sqliteTable("members", {
   updatedAt: text("updated_at").notNull(),
 }, (table) => [uniqueIndex("idx_members_email").on(table.email)]);
 
+export const authCredentials = sqliteTable("auth_credentials", {
+  memberId: text("member_id").primaryKey(),
+  passwordHash: text("password_hash").notNull(),
+  passwordSalt: text("password_salt").notNull(),
+  createdAt: text("created_at").notNull(),
+  updatedAt: text("updated_at").notNull(),
+});
+
+export const authSessions = sqliteTable("auth_sessions", {
+  id: text("id").primaryKey(),
+  memberId: text("member_id").notNull(),
+  expiresAt: text("expires_at").notNull(),
+  createdAt: text("created_at").notNull(),
+  lastSeenAt: text("last_seen_at").notNull(),
+}, (table) => [index("idx_auth_sessions_member").on(table.memberId), index("idx_auth_sessions_expiry").on(table.expiresAt)]);
+
 export const journeySteps = sqliteTable("journey_steps", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   memberId: text("member_id").notNull(),
