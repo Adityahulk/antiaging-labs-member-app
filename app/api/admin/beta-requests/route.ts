@@ -1,0 +1,6 @@
+import { getDatabase, nowIso } from "@/lib/database";
+import { requireRole } from "@/lib/authz";
+
+export async function GET() { await requireRole(["admin"]); const db=await getDatabase(); const rows=await db.prepare("SELECT b.*,m.full_name,m.email FROM beta_access b JOIN members m ON m.id=b.member_id ORDER BY CASE b.status WHEN 'pending' THEN 0 ELSE 1 END,b.updated_at DESC LIMIT 100").all(); return Response.json(rows.results); }
+
+export async function PATCH(request: Request) { const actor=await requireRole(["admin"]); const body=await request.json() as { memberId?: string; status?: string; note?: string }; if (!body.memberId || !["approved","rejected","pending"].includes(body.status ?? "")) return Response.json({error:"memberId and valid status are required"},{status:400}); const db=await getDatabase(); const now=nowIso(); const approved=body.status === "approved" ? now : null; await db.prepare("UPDATE beta_access SET status=?,approved_at=?,note=?,updated_at=? WHERE member_id=?").bind(body.status,approved,body.note ?? `Beta access ${body.status}`,now,body.memberId).run(); await db.prepare("INSERT INTO admin_events (member_id,actor_id,action,entity_type,entity_id,detail_json,created_at) VALUES (?,?, 'beta.decided','beta_access',?,?,?)").bind(body.memberId,actor.id,body.memberId,JSON.stringify(body),now).run(); return Response.json({status:body.status}); }

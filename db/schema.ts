@@ -348,6 +348,15 @@ export const memberJurisdictions = sqliteTable("member_jurisdictions", {
   memberId: text("member_id").primaryKey(), countryCode: text("country_code").notNull(), regionCode: text("region_code").notNull(), policyVersion: text("policy_version").notNull(), featuresJson: text("features_json").notNull(), updatedAt: text("updated_at").notNull(),
 });
 
+export const betaAccess = sqliteTable("beta_access", {
+  memberId: text("member_id").primaryKey(),
+  status: text("status").notNull(),
+  requestedAt: text("requested_at"),
+  approvedAt: text("approved_at"),
+  note: text("note").notNull(),
+  updatedAt: text("updated_at").notNull(),
+}, (table) => [index("idx_beta_access_status").on(table.status)]);
+
 export const fhirExports = sqliteTable("fhir_exports", {
   id: text("id").primaryKey(), memberId: text("member_id").notNull(), standard: text("standard").notNull(), profileVersion: text("profile_version").notNull(), purpose: text("purpose").notNull(), bundleHash: text("bundle_hash").notNull(), objectKey: text("object_key"), status: text("status").notNull(), destination: text("destination"), createdAt: text("created_at").notNull(),
 }, (table) => [index("idx_fhir_exports_member_time").on(table.memberId, table.createdAt)]);

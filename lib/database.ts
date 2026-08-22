@@ -6,6 +6,8 @@ const schemaStatements = [
   `CREATE TABLE IF NOT EXISTS auth_sessions (id TEXT PRIMARY KEY, member_id TEXT NOT NULL, expires_at TEXT NOT NULL, created_at TEXT NOT NULL, last_seen_at TEXT NOT NULL)`,
   `CREATE INDEX IF NOT EXISTS idx_auth_sessions_member ON auth_sessions(member_id)`,
   `CREATE INDEX IF NOT EXISTS idx_auth_sessions_expiry ON auth_sessions(expires_at)`,
+  `CREATE TABLE IF NOT EXISTS beta_access (member_id TEXT PRIMARY KEY, status TEXT NOT NULL, requested_at TEXT, approved_at TEXT, note TEXT NOT NULL, updated_at TEXT NOT NULL)`,
+  `CREATE INDEX IF NOT EXISTS idx_beta_access_status ON beta_access(status)`,
   `CREATE TABLE IF NOT EXISTS journey_steps (id INTEGER PRIMARY KEY AUTOINCREMENT, member_id TEXT NOT NULL, step_code TEXT NOT NULL, title TEXT NOT NULL, detail TEXT NOT NULL, state TEXT NOT NULL, sort_order INTEGER NOT NULL, due_at TEXT, updated_at TEXT NOT NULL, UNIQUE(member_id, step_code))`,
   `CREATE INDEX IF NOT EXISTS idx_journey_member_order ON journey_steps(member_id, sort_order)`,
   `CREATE TABLE IF NOT EXISTS orders (id TEXT PRIMARY KEY, member_id TEXT NOT NULL, type TEXT NOT NULL, product_name TEXT NOT NULL, status TEXT NOT NULL, reference TEXT NOT NULL, vendor TEXT, amount_paise INTEGER NOT NULL, payment_status TEXT NOT NULL, tracking_url TEXT, appointment_at TEXT, metadata_json TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL)`,

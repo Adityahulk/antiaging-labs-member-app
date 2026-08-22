@@ -3,8 +3,8 @@ import { getMemberIdentity } from "@/lib/member";
 import { ensureMemberSeed } from "@/lib/seed";
 
 const catalog = {
-  biomarker: { name: "Advanced Longevity Panel", amountPaise: 1899900, vendor: "Concierge lab network" },
-  genetics: { name: "Longevity Genetics Array", amountPaise: 2999900, vendor: "Genomics partner" },
+  biomarker: { name: "Men's Longevity Biomarker Panel", amountPaise: 499900, vendor: "Concierge lab network" },
+  genetics: { name: "Longevity Genetics Array", amountPaise: 1499900, vendor: "Genomics partner" },
 };
 
 export async function GET() {
