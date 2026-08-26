@@ -1,7 +1,7 @@
 export type IntakeQuestion={code:string;module:string;label:string;type:"text"|"number"|"textarea";why:string;sensitive?:boolean;required?:boolean;showIf?:{code:string;includes:string[]}};
 export const intakeQuestions:IntakeQuestion[]=[
-{code:"primary_goal",module:"goals",label:"What is your main health goal right now?",type:"textarea",why:"Anchors protocol priorities.",required:true},
-{code:"desired_outcomes",module:"goals",label:"What would meaningful progress look like in 12 weeks?",type:"textarea",why:"Turns broad goals into measurable outcomes."},
+{code:"primary_goal",module:"goals",label:"What would you most like help with right now?",type:"textarea",why:"If you are unsure, describe how you feel or what prompted you to look more closely.",required:true},
+{code:"desired_outcomes",module:"goals",label:"If we could improve one thing over the next month, what change would matter most?",type:"textarea",why:"Connects what matters to you with an outcome we can observe."},
 {code:"birth_sex",module:"identity",label:"Sex recorded at birth",type:"text",why:"Used where reference ranges or physiology differ.",sensitive:true,required:true},
 {code:"reproductive_context",module:"identity",label:"Relevant menstrual, menopause, pregnancy, breastfeeding, or hormone context",type:"textarea",why:"Adds important physiological context.",sensitive:true},
 {code:"height",module:"body",label:"Height (cm)",type:"number",why:"Used for body-composition and derived calculations.",required:true},
@@ -39,5 +39,5 @@ export const intakeQuestions:IntakeQuestion[]=[
 {code:"environment",module:"environment",label:"Work pattern, travel, AQI, occupational, or environmental exposures",type:"textarea",why:"Captures factors outside diet and exercise."},
 {code:"constraints",module:"constraints",label:"Budget, kitchen, household, schedule, or caregiving constraints",type:"textarea",why:"A useful protocol must fit real life."},
 {code:"coaching_preferences",module:"coaching",label:"What coaching style and reminder cadence works best?",type:"textarea",why:"Personalizes language and follow-up."},
-{code:"readiness",module:"coaching",label:"How ready are you to change one to six habits over 12 weeks?",type:"textarea",why:"Sets an achievable starting stack."},
+{code:"readiness",module:"coaching",label:"How ready are you to test one change consistently for the next two weeks?",type:"textarea",why:"Helps us choose a useful experiment that fits your real life."},
 ];

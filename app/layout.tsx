@@ -19,21 +19,21 @@ export async function generateMetadata(): Promise<Metadata> {
   const requestHeaders = await headers();
   const host = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host") ?? "localhost:3000";
   const protocol = requestHeaders.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
-  const image = `${protocol}://${host}/og.png`;
+  const image = `${protocol}://${host}/og-response-twin.png`;
 
   return {
-    title: "Antiaging Labs — Your Member Experience",
-    description: "Your living health map, personalized protocol, reports, and daily guidance.",
+    title: "Antiaging Labs — Your Personal Response Twin",
+    description: "A DNA-informed health Twin that learns which measurable changes work for you.",
     icons: { icon: "/favicon.svg", shortcut: "/favicon.svg" },
     openGraph: {
-      title: "Antiaging Labs — Your health, connected",
-      description: "Explore your living health map and follow a protocol built around your data.",
+      title: "Antiaging Labs — Your Personal Response Twin",
+      description: "Connect inherited context, biomarkers and daily signals to learn what actually works for you.",
       images: [{ url: image, width: 1730, height: 909, alt: "Antiaging Labs member experience" }],
     },
     twitter: {
       card: "summary_large_image",
-      title: "Antiaging Labs — Your health, connected",
-      description: "Explore your living health map and follow a protocol built around your data.",
+      title: "Antiaging Labs — Your Personal Response Twin",
+      description: "Connect inherited context, biomarkers and daily signals to learn what actually works for you.",
       images: [image],
     },
   };

@@ -1,3 +1,3 @@
 import { MemberShell, PageHeader } from "@/components/member-shell";
-import { IntakeExperience } from "@/components/workflow-experiences";
-export default function IntakePage() { return <MemberShell><PageHeader eyebrow="HEALTH INTAKE" title="The context that makes your plan personal." description="Short, adaptive steps. Every answer saves automatically and can be changed later." /><IntakeExperience /></MemberShell>; }
+import { OnboardingExperience } from "@/components/onboarding-experience";
+export default function IntakePage() { return <MemberShell><PageHeader eyebrow="YOUR CONTEXT" title="Start with what matters to you." description="Essential questions first, deeper context when it becomes relevant. Your answers save as you go." /><OnboardingExperience /></MemberShell>; }

@@ -2,7 +2,7 @@ import { env } from "cloudflare:workers";
 
 export type RuntimeConfig = {
   APP_ENV?: string; ALLOW_DEMO_AUTH?: string; SEED_DEMO_DATA?: string;
-  ADMIN_EMAILS?: string; PRACTITIONER_EMAILS?: string;
+  ADMIN_EMAILS?: string; PRACTITIONER_EMAILS?: string; BETA_INVITE_CODES?: string;
   BACKUP_RUN_KEY?: string;
   RAZORPAY_KEY_ID?: string; RAZORPAY_KEY_SECRET?: string; RAZORPAY_WEBHOOK_SECRET?: string;
   OPEN_WEARABLES_URL?: string; OPEN_WEARABLES_API_KEY?: string; OPEN_WEARABLES_WEBHOOK_SECRET?: string;

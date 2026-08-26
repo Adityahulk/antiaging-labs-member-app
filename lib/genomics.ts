@@ -5,6 +5,78 @@ export const GENOMICS_POLICY_VERSION = "genetics-interpretation-2026.08";
 
 type TargetVariant = { rsid: string; gene: string; chromosome: string; label: string; category: "inherited_context" | "pharmacogenomics" | "wellness_context" };
 
+export type PhenotypeExpression = "expressed" | "not_expressed" | "unknown";
+export type PhenotypeSignal = { value: number; unit?: string | null; effectiveAt?: string | null };
+export type GenomicsPolicyView = {
+  actionPolicy: "hypothesis_only" | "review_required";
+  canCreateAction: false;
+  hypothesis: string;
+  whatThisChanges: string;
+  wouldClarify: string[];
+  phenotype: { status: PhenotypeExpression; label: string; basis: string; observedAt: string | null };
+  evidenceLabel: string;
+  limitations: string[];
+  reanalysis: { policyVersion: string; lastAnalysedAt: string | null; note: string };
+};
+
+type PhenotypeRule = { conceptCodes: string[]; threshold: number; direction: "above" | "below"; label: string };
+type GenomicContextPolicy = { hypothesis: string; changes: string; clarify: string[]; phenotype?: PhenotypeRule; researchOnly?: boolean };
+
+const defaultContextPolicy: GenomicContextPolicy = {
+  hypothesis: "This finding may help frame a question when it agrees with measured biology or a repeatable personal response.",
+  changes: "Keeps an inherited-context hypothesis visible; it does not change an action by itself.",
+  clarify: ["A related biomarker or wearable phenotype", "Family and clinical context", "A measured intervention-response cycle"],
+};
+
+const contextPolicyByGene: Record<string, GenomicContextPolicy> = {
+  APOE: { hypothesis: "Inherited lipid context may make corroborating lipid measurements and family history more informative.", changes: "After reviewer release, prioritizes corroborating lipid context; it does not prescribe treatment.", clarify: ["Confirmatory testing when clinically relevant", "ApoB and a complete lipid panel", "Cardiovascular family history"] },
+  MTHFR: { hypothesis: "Folate-pathway context may be worth checking against the measured homocysteine phenotype.", changes: "Prioritizes measuring homocysteine before considering any folate-pathway response.", clarify: ["Homocysteine", "B12 and folate status", "Diet, medicines, and confirmatory context"], phenotype: { conceptCodes: ["homocysteine"], threshold: 10, direction: "above", label: "related homocysteine phenotype" } },
+  FTO: { hypothesis: "A small, population-dependent body-composition association may be explored only alongside measured phenotype and behaviour.", changes: "Adds a research hypothesis to body-composition context; it does not change diet or training actions.", clarify: ["Longitudinal waist or body-composition measurements", "Appetite and activity context", "Observed response to a measured intervention"], researchOnly: true },
+  PPARGC1A: { hypothesis: "A research association may be compared with measured activity and metabolic response.", changes: "Adds research context to a future response analysis; it does not select training or nutrition.", clarify: ["Wearable activity baseline", "Relevant metabolic biomarkers", "A completed response experiment"], researchOnly: true },
+  ACTN3: { hypothesis: "Muscle-performance context may help frame, but cannot determine, a training-response question.", changes: "Adds context to a future training hypothesis; it does not choose a workout plan.", clarify: ["Training history", "Performance baseline", "Observed response and injury context"] },
+  BDNF: { hypothesis: "A research association may be compared with measured behaviour and response rather than treated as a prediction.", changes: "Adds research context only; it does not create a mental-health or exercise action.", clarify: ["Relevant symptoms and context", "A repeatable measured outcome", "Stronger evidence and replication"], researchOnly: true },
+  COMT: { hypothesis: "Catecholamine-pathway context may be explored only when a relevant, measured phenotype is present.", changes: "Keeps a context hypothesis available; it does not prescribe stress, sleep, or supplement actions.", clarify: ["Symptoms and medication context", "Sleep and recovery baseline", "Observed response to a low-risk experiment"] },
+  VDR: { hypothesis: "Vitamin-D receptor context may be compared with measured vitamin-D status.", changes: "Prioritizes checking measured vitamin-D status; it does not determine supplementation.", clarify: ["25-OH vitamin D", "Collection date and season", "Clinical and medication context"], phenotype: { conceptCodes: ["vitamin_d"], threshold: 30, direction: "below", label: "related vitamin-D phenotype" } },
+  CYP1A2: { hypothesis: "Caffeine timing may be personally relevant, but genotype alone cannot establish metabolism or sleep response.", changes: "Supports a caffeine-timing hypothesis only when intake and sleep data can test it.", clarify: ["Caffeine amount and timing", "A stable wearable sleep baseline", "A safe caffeine-timing experiment"] },
+  FOXO3: { hypothesis: "This healthy-ageing association is research context, not a personal longevity forecast.", changes: "Adds research context only and does not change an intervention or age estimate.", clarify: ["Replication across ancestry groups", "Longitudinal phenotype data", "Validated response evidence"], researchOnly: true },
+  IL6: { hypothesis: "Inflammatory-pathway context may be compared with a repeated inflammatory phenotype.", changes: "Prioritizes corroborating inflammation measurements when otherwise indicated; it does not create an anti-inflammatory action.", clarify: ["Repeated hs-CRP away from acute illness", "Symptoms and clinical context", "Other inflammatory markers when indicated"], phenotype: { conceptCodes: ["hs_crp", "hscrp"], threshold: 2, direction: "above", label: "related inflammatory phenotype" }, researchOnly: true },
+  TNF: { hypothesis: "Inflammatory-pathway context may be compared with a repeated inflammatory phenotype.", changes: "Prioritizes corroborating inflammation measurements when otherwise indicated; it does not create an anti-inflammatory action.", clarify: ["Repeated hs-CRP away from acute illness", "Symptoms and clinical context", "Other inflammatory markers when indicated"], phenotype: { conceptCodes: ["hs_crp", "hscrp"], threshold: 2, direction: "above", label: "related inflammatory phenotype" }, researchOnly: true },
+};
+
+function valueFrom(row: Record<string, unknown>, camel: string, snake: string) { return row[camel] ?? row[snake]; }
+
+export function buildGenomicsPolicyView(interpretation: Record<string, unknown>, signals: Record<string, PhenotypeSignal> = {}): GenomicsPolicyView {
+  const gene = String(valueFrom(interpretation, "gene", "gene") ?? "").toUpperCase();
+  const evidenceLevel = String(valueFrom(interpretation, "evidenceLevel", "evidence_level") ?? "context_only");
+  const status = String(valueFrom(interpretation, "status", "status") ?? "draft");
+  const createdAt = valueFrom(interpretation, "createdAt", "created_at");
+  const policy = contextPolicyByGene[gene] ?? defaultContextPolicy;
+  const signal = policy.phenotype?.conceptCodes.map((code) => signals[code]).find((item) => item && Number.isFinite(item.value));
+  let phenotype: GenomicsPolicyView["phenotype"] = { status: "unknown", label: policy.phenotype?.label ?? "related phenotype", basis: policy.phenotype ? `No current ${policy.phenotype.conceptCodes.join(" or ")} measurement is available.` : "No validated single measured phenotype is defined for this finding.", observedAt: null };
+  if (policy.phenotype && signal) {
+    const expressed = policy.phenotype.direction === "above" ? signal.value >= policy.phenotype.threshold : signal.value < policy.phenotype.threshold;
+    phenotype = {
+      status: expressed ? "expressed" : "not_expressed",
+      label: policy.phenotype.label,
+      basis: `${policy.phenotype.conceptCodes[0]} ${signal.value}${signal.unit ? ` ${signal.unit}` : ""} is ${expressed ? "consistent" : "not currently consistent"} with the contextual phenotype rule. This is not a diagnosis or proof that the variant caused it.`,
+      observedAt: signal.effectiveAt ?? null,
+    };
+  }
+  const reviewRequired = status !== "released" || ["ambiguous", "review_required"].includes(evidenceLevel);
+  const evidenceLabel = policy.researchOnly ? "Research/context only" : evidenceLevel.replaceAll("_", " ");
+  return {
+    actionPolicy: reviewRequired ? "review_required" : "hypothesis_only",
+    canCreateAction: false,
+    hypothesis: policy.hypothesis,
+    whatThisChanges: reviewRequired ? `${policy.changes} Reviewer release is required before it informs the Twin.` : policy.changes,
+    wouldClarify: policy.clarify,
+    phenotype,
+    evidenceLabel,
+    limitations: ["A genetic association is not a diagnosis or destiny.", "Context-only and research-only findings cannot directly create an action.", ...(policy.researchOnly ? ["This association is retained for research/context and may not generalize across ancestry groups."] : [])],
+    reanalysis: { policyVersion: GENOMICS_POLICY_VERSION, lastAnalysedAt: typeof createdAt === "string" ? createdAt : null, note: "Interpretation can change when the curated evidence policy is updated; raw calls remain unchanged." },
+  };
+}
+
 const targetVariants: TargetVariant[] = [
   { rsid: "rs429358", gene: "APOE", chromosome: "19", label: "APOE isoform component", category: "inherited_context" },
   { rsid: "rs7412", gene: "APOE", chromosome: "19", label: "APOE isoform component", category: "inherited_context" },
@@ -146,13 +218,20 @@ export async function runGenomicReanalysis(memberId: string, artifactId: string,
   await db.prepare("INSERT INTO genomic_reanalysis_runs (id,member_id,artifact_id,previous_run_id,trigger,evidence_set_json,pipeline_version,status,summary_json,created_at,completed_at) VALUES (?,?,?,?,?,?,?,'processing','{}',?,NULL)").bind(runId,memberId,artifactId,previous?.id??null,trigger,JSON.stringify([releaseId]),GENOMICS_PIPELINE_VERSION,now).run();
   await db.prepare("DELETE FROM genomic_interpretations WHERE member_id=? AND artifact_id=? AND status='draft'").bind(memberId,artifactId).run();
   const called = calls.results.filter((row)=>row.call_state==="called"&&row.genotype); const statements:D1PreparedStatement[]=[];
-  for(const row of called){const variant=targetsByRsid.get(String(row.rsid));if(!variant||variant.gene==="APOE")continue;statements.push(db.prepare("INSERT INTO genomic_interpretations (id,member_id,artifact_id,variant_call_id,gene,rsid,category,title,summary,evidence_level,evidence_release_ids_json,limitations_json,status,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?, 'draft',?)").bind(id("interpretation"),memberId,artifactId,row.id,variant.gene,variant.rsid,variant.category,variant.label,`${variant.rsid} was called as ${row.genotype}. It is retained as contextual evidence and cannot independently create a protocol action.`,"context_only",JSON.stringify([releaseId]),JSON.stringify(["Common-variant effects are usually small and population-dependent.","Confirm strand/build before any allele-direction interpretation."]),now));}
+  for(const row of called){const variant=targetsByRsid.get(String(row.rsid));if(!variant||variant.gene==="APOE")continue;const policy=contextPolicyByGene[variant.gene]??defaultContextPolicy;statements.push(db.prepare("INSERT INTO genomic_interpretations (id,member_id,artifact_id,variant_call_id,gene,rsid,category,title,summary,evidence_level,evidence_release_ids_json,limitations_json,status,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?, 'draft',?)").bind(id("interpretation"),memberId,artifactId,row.id,variant.gene,variant.rsid,variant.category,variant.label,`${variant.rsid} was called as ${row.genotype}. ${policy.hypothesis} This finding is hypothesis-only and cannot independently create a protocol action.`,"context_only",JSON.stringify([releaseId]),JSON.stringify(["Common-variant effects are usually small and population-dependent.","Confirm strand/build before any allele-direction interpretation.","Context-only and research-only findings cannot directly create actions."]),now));}
   const apo1=called.find((row)=>row.rsid==="rs429358");const apo2=called.find((row)=>row.rsid==="rs7412");const diplotypes=possibleApoeDiplotypes(String(apo1?.genotype??"")||null,String(apo2?.genotype??"")||null);
-  if(apo1&&apo2){const certain=diplotypes.length===1;statements.push(db.prepare("INSERT INTO genomic_interpretations (id,member_id,artifact_id,variant_call_id,gene,rsid,category,title,summary,evidence_level,evidence_release_ids_json,limitations_json,status,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?, 'draft',?)").bind(id("interpretation"),memberId,artifactId,null,"APOE","rs429358+rs7412","inherited_context","APOE inherited context",certain?`The two component calls are consistent with ${diplotypes[0]}. This result remains pending reviewer confirmation.`:`The unphased component calls permit ${diplotypes.join(" or ")||"no confident diplotype"}; phasing or a confirmatory result is needed before display as a single result.`,certain?"review_required":"ambiguous",JSON.stringify([releaseId]),JSON.stringify(["Raw consumer data is not a confirmatory clinical test.","Unphased double heterozygotes can be diplotype-ambiguous."]),now));}
+  if(apo1&&apo2){const certain=diplotypes.length===1;statements.push(db.prepare("INSERT INTO genomic_interpretations (id,member_id,artifact_id,variant_call_id,gene,rsid,category,title,summary,evidence_level,evidence_release_ids_json,limitations_json,status,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?, 'draft',?)").bind(id("interpretation"),memberId,artifactId,null,"APOE","rs429358+rs7412","inherited_context","APOE inherited context",certain?`The two component calls are consistent with ${diplotypes[0]}. This result remains pending reviewer confirmation and cannot independently create an action.`:`The unphased component calls permit ${diplotypes.join(" or ")||"no confident diplotype"}; phasing or a confirmatory result is needed before display as a single result. It cannot independently create an action.`,certain?"review_required":"ambiguous",JSON.stringify([releaseId]),JSON.stringify(["Raw consumer data is not a confirmatory clinical test.","Unphased double heterozygotes can be diplotype-ambiguous.","Inherited context can generate a measurement hypothesis but cannot directly create an action."]),now));}
   if(statements.length)await db.batch(statements);const summary={targetCalls:calls.results.length,interpreted:statements.length,apoeDiplotypes:diplotypes,ambiguousApoe:diplotypes.length!==1,evidenceReleases:[releaseId]};await db.batch([db.prepare("UPDATE genomic_reanalysis_runs SET status='completed',summary_json=?,completed_at=? WHERE id=?").bind(JSON.stringify(summary),nowIso(),runId),db.prepare("UPDATE genomic_artifacts SET updated_at=? WHERE id=?").bind(nowIso(),artifactId)]);return{id:runId,status:"completed",summary};
 }
 
 export async function getGenomicsState(memberId: string) {
-  const db=await getDatabase();const artifacts=await db.prepare("SELECT * FROM genomic_artifacts WHERE member_id=? ORDER BY created_at DESC").bind(memberId).all<Record<string,unknown>>();const interpretations=await db.prepare("SELECT * FROM genomic_interpretations WHERE member_id=? ORDER BY created_at DESC").bind(memberId).all<Record<string,unknown>>();const runs=await db.prepare("SELECT * FROM genomic_reanalysis_runs WHERE member_id=? ORDER BY created_at DESC LIMIT 20").bind(memberId).all<Record<string,unknown>>();
-  return {artifacts:artifacts.results,interpretations:interpretations.results,runs:runs.results};
+  const db=await getDatabase();const [artifacts,interpretations,runs,observations]=await Promise.all([
+    db.prepare("SELECT * FROM genomic_artifacts WHERE member_id=? ORDER BY created_at DESC").bind(memberId).all<Record<string,unknown>>(),
+    db.prepare("SELECT * FROM genomic_interpretations WHERE member_id=? ORDER BY created_at DESC").bind(memberId).all<Record<string,unknown>>(),
+    db.prepare("SELECT * FROM genomic_reanalysis_runs WHERE member_id=? ORDER BY created_at DESC LIMIT 20").bind(memberId).all<Record<string,unknown>>(),
+    db.prepare("SELECT concept_code,value_number,unit,effective_at FROM observations WHERE member_id=? AND quality!='rejected' ORDER BY effective_at DESC").bind(memberId).all<Record<string,unknown>>(),
+  ]);
+  const signals:Record<string,PhenotypeSignal>={};for(const row of observations.results){const code=String(row.concept_code);if(!signals[code]&&typeof row.value_number==="number")signals[code]={value:row.value_number,unit:typeof row.unit==="string"?row.unit:null,effectiveAt:typeof row.effective_at==="string"?row.effective_at:null};}
+  const policyInterpretations=interpretations.results.map((row)=>({...row,...buildGenomicsPolicyView(row,signals)}));
+  return {artifacts:artifacts.results,interpretations:policyInterpretations,runs:runs.results,policyVersion:GENOMICS_POLICY_VERSION};
 }

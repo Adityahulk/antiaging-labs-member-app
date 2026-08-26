@@ -7,6 +7,7 @@ import { getGenomicsState } from "./genomics";
 import { getCrossModalFindings } from "./cross-modal";
 import { getMemberOutcomes } from "./phase3";
 import { interoperabilityStatus } from "./interoperability";
+import { getResponseState } from "./response-state";
 
 type Row = Record<string, unknown>;
 
@@ -46,10 +47,11 @@ export async function getMemberAppData(identity: MemberIdentity) {
   const actions = protocol
     ? await db.prepare("SELECT * FROM protocol_actions WHERE member_id = ? AND protocol_id = ? ORDER BY sort_order").bind(identity.id, protocol.id).all<Row>()
     : { results: [] as Row[] };
-  const [genomics, crossModal, phase3] = await Promise.all([
+  const [genomics, crossModal, phase3, responseState] = await Promise.all([
     getGenomicsState(identity.id),
     snapshot ? getCrossModalFindings(identity.id, String(snapshot.id)) : Promise.resolve([]),
     getMemberOutcomes(identity.id),
+    getResponseState(identity.id),
   ]);
 
   const journeyRows = journey.results.map((row) => decode(row));
@@ -81,7 +83,8 @@ export async function getMemberAppData(identity: MemberIdentity) {
     dailyAdjustment: adjustment ? decode(adjustment) : null,
     wearableConnections: connections.results.map((row) => decode(row)),
     integrations: integrationHealth(),
-    phase3,
+    phase3: { ...phase3, interventions: responseState.interventions, responseAssessments: responseState.responseAssessments },
+    responseState,
     interoperability: interoperabilityStatus(),
   };
 }

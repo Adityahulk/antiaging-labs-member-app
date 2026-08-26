@@ -37,6 +37,14 @@ export function DataExperience() {
   const coverage = data?.twin?.coverage ?? 0;
   return (
     <>
+      <section className="data-entry-hero">
+        <div><span className="card-kicker">BUILD YOUR EVIDENCE FOUNDATION</span><h1>Start with what you already have.</h1><p>You do not need every data source to begin. Each layer answers a different question, and your Twin stays explicit about what is still unknown.</p></div>
+        <div className="data-entry-paths">
+          <a href="#wearables"><span>01</span><strong>Wearable history</strong><small>How your body changes day to day</small><i>{data?.wearableConnections.some((item)=>item.status==="active")?"Connected":"Connect"} →</i></a>
+          <a href="#uploads"><span>02</span><strong>Existing labs</strong><small>Your current internal state</small><i>{data?.observations.length?"Available":"Upload"} →</i></a>
+          <a href="#uploads" className="genome-path"><span>03</span><strong>DNA context</strong><small>Inherited hypotheses to test—not destiny</small><i>{artifacts.length?"Added":"Upload or add later"} →</i></a>
+        </div>
+      </section>
       <section className="data-summary-grid">
         <article className="paper-card data-summary">
           <span>OVERALL COVERAGE</span>
@@ -69,7 +77,7 @@ export function DataExperience() {
           </small>
         </article>
       </section>
-      <WearableConnections />
+      <div id="wearables"><WearableConnections /></div>
       <CompanionConnections />
       <section className="source-section paper-card">
         <div className="section-head compact">
@@ -175,7 +183,7 @@ export function DataExperience() {
           <a href="/twin">Explore fusion evidence →</a>
         </article>
       </section>
-      <UploadExperience />
+      <div id="uploads"><UploadExperience /></div>
     </>
   );
 }

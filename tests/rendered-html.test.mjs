@@ -15,7 +15,8 @@ test("ships the complete member experience instead of the starter", async () => 
   assert.match(home, /TodayExperience/);
   assert.match(layout, /Antiaging Labs/);
   assert.match(shell, /Twin/);
-  assert.match(shell, /Protocol/);
+  assert.match(shell, /Experiment/);
+  assert.match(shell, /Results/);
   assert.match(styles, /expanded-map/);
   assert.doesNotMatch(home, /SkeletonPreview|codex-preview/);
 });
@@ -37,7 +38,8 @@ test("contains Phase 1A operational workflows", async () => {
   assert.match(checkout, /razorpay/);
   assert.match(upload, /processUpload/);
   assert.match(reports, /status = 'ready'/);
-  assert.match(protocol, /status = 'current'/);
+  assert.match(protocol, /status='current'/);
+  assert.match(protocol, /one bounded change/i);
   assert.match(admin, /CONCIERGE FULFILLMENT/);
 });
 
@@ -70,9 +72,12 @@ test("includes deployable migrations and all core routes", async () => {
     "app/api/protocols/generate/route.ts",
     "app/api/wearables/connect/[provider]/route.ts",
     "app/admin/clients/[id]/page.tsx",
+    "drizzle/0007_intervention_response_graph.sql",
+    "app/api/priorities/route.ts",
+    "app/api/interventions/[id]/response/route.ts",
   ];
   await Promise.all(required.map((path) => access(new URL(path, root))));
-  assert.equal(required.length, 9);
+  assert.equal(required.length, 12);
 });
 
 test("contains Phase 2 genomic ingestion, cross-modal fusion, and supervised drafting", async () => {
@@ -102,7 +107,8 @@ test("contains Phase 2 genomic ingestion, cross-modal fusion, and supervised dra
   assert.match(drafting, /allowedGroundingRefs/);
   assert.match(reports, /genetics-report-v2/);
   assert.match(admin, /chatAudits/);
-  assert.match(geneticsUi, /REPRODUCIBLE HISTORY/);
+  assert.match(geneticsUi, /REPRODUCIBLE EVIDENCE HISTORY/);
+  assert.match(geneticsUi, /zero DNA-only actions/i);
 });
 
 test("ships Phase 2 routes, fixtures, and vendor-neutral lab activation", async () => {
@@ -159,11 +165,11 @@ test("contains Phase 3 native sync, outcome validation, experiments, and interop
   assert.match(outcomes, /minimumCell/);
   assert.match(models, /Temporal/);
   assert.match(models, /abstained/);
-  assert.match(experiments, /YOUR N-OF-1 LAB/);
+  assert.match(experiments, /CHOOSE ONE MEASURABLE QUESTION/);
   assert.match(fhir, /FHIR R4/);
   assert.match(fhir, /Provenance/);
-  assert.match(ui, /Progress/);
-  assert.match(ui, /Experiments/);
+  assert.match(ui, /Results/);
+  assert.match(ui, /Experiment/);
 });
 
 test("ships reproducible web, Android, and iOS build pipelines", async () => {

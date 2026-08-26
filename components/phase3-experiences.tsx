@@ -103,8 +103,13 @@ export function CompanionConnections() {
 export function OutcomesExperience() {
   const { data, refresh } = useAppData();
   const [notice, setNotice] = useState("");
+  const [decisions, setDecisions] = useState<Record<string, "keep" | "change" | "stop">>({});
   const state = data?.phase3;
+  const enrichedState = (state ?? {}) as unknown as Row;
   const outcomes = state?.outcomes ?? [];
+  const experiments = state?.experiments ?? [];
+  const responseAssessments = (enrichedState.responseAssessments as Row[] | undefined) ?? [];
+  const interventions = (enrichedState.interventions as Row[] | undefined) ?? [];
   const consent = Boolean(state?.researchConsent?.granted);
   const updateConsent = async (granted: boolean) => {
     await fetch("/api/research/consent", {
@@ -119,99 +124,76 @@ export function OutcomesExperience() {
     );
     await refresh();
   };
-  const exportFhir = async () => {
-    const response = await fetch("/api/interoperability/fhir/export", {
-      method: "POST",
-    });
-    const result = (await response.json()) as { bundle?: unknown };
-    if (response.ok && result.bundle) {
-      const blob = new Blob([JSON.stringify(result.bundle, null, 2)], {
-        type: "application/fhir+json",
-      });
-      const link = document.createElement("a");
-      link.href = URL.createObjectURL(blob);
-      link.download = "antiaging-labs-fhir-r4.json";
-      link.click();
-      URL.revokeObjectURL(link.href);
-      setNotice("Your FHIR R4 record was created.");
+  const experimentFor = (targetCode: unknown) => {
+    const aliases: Record<string, string[]> = {
+      resting_hr_28d: ["resting_hr"],
+      sleep_duration_28d: ["sleep_minutes"],
+    };
+    const code = String(targetCode);
+    const accepted = [code, ...(aliases[code] ?? [])];
+    return experiments.find((item) => accepted.includes(String(item.primaryOutcome)) && item.status !== "active");
+  };
+  const chooseDecision = async (id: string, decision: "keep" | "change" | "stop", linkedInterventionId?: string) => {
+    setDecisions((current) => ({ ...current, [id]: decision }));
+    const assessment = responseAssessments.find((item) => String(item.id) === id);
+    const interventionId = String(assessment?.interventionEpisodeId ?? linkedInterventionId ?? "");
+    if (!interventionId) {
+      setNotice(`“${decision}” is noted locally only because this longitudinal comparison is not linked to an intervention.`);
+      return;
     }
+    const response = await fetch(`/api/interventions/${interventionId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "decide", decision, reason: `Member chose ${decision} after reviewing result ${id}` }) });
+    const result = await response.json() as { error?: string };
+    if (!response.ok) { setNotice(result.error || "The decision could not be saved."); return; }
+    setNotice(`“${decision}” was saved to this intervention response.`);
+    await refresh();
   };
   return (
     <>
       {notice ? <p className="workflow-notice">{notice}</p> : null}
       <section className="progress-hero paper-card">
         <div>
-          <span className="card-kicker">LONGITUDINAL OUTCOMES</span>
-          <h2>Change you can inspect.</h2>
+          <span className="card-kicker">YOUR RESULTS</span>
+          <h2>What changed—and what we can honestly conclude.</h2>
           <p>
-            Every comparison keeps its baseline, current value, dates, unit,
-            data quality, and source references. No composite score hides the
-            movement.
+            Each result keeps its dates, unit, quality, and source trail. When an
+            intervention is not linked to the comparison window, the app does not
+            imply that it caused the change.
           </p>
         </div>
         <div className="progress-orbit">
-          <span>{outcomes.length}</span>
+          <span>{responseAssessments.length || outcomes.length}</span>
           <small>
-            measured
+            available
             <br />
-            outcomes
+            comparisons
           </small>
           <i />
         </div>
       </section>
+      {responseAssessments.length ? <section className="outcome-grid">{responseAssessments.map((assessment) => <ResponseAssessmentCard key={String(assessment.id)} item={assessment} intervention={interventions.find((candidate) => candidate.id === assessment.interventionEpisodeId)} decision={decisions[String(assessment.id)]} onDecision={(decision) => void chooseDecision(String(assessment.id), decision)} />)}</section> : null}
       <section className="outcome-grid">
-        {outcomes.length ? (
+        {responseAssessments.length ? null : outcomes.length ? (
           outcomes.map((outcome, index) => (
             <OutcomeCard
               key={String(outcome.id)}
               item={outcome}
               index={index}
+              experiment={experimentFor(outcome.targetCode)}
+              decision={decisions[String(outcome.id)]}
+              onDecision={(decision) => { const experiment = experimentFor(outcome.targetCode); const linked = interventions.find((item) => item.sourceExperimentId === experiment?.id); void chooseDecision(String(outcome.id), decision, linked ? String(linked.id) : undefined); }}
             />
           ))
         ) : (
           <article className="paper-card outcome-empty">
-            <span>COLLECTING YOUR SECOND TIMEPOINT</span>
-            <h2>Progress begins with a reliable comparison.</h2>
+            <span>NO INTERPRETABLE RESULT YET</span>
+            <h2>A result needs a reliable before and after.</h2>
             <p>
-              Wearables compare your recent seven days with the preceding
-              baseline. Lab outcomes appear after a verified retest.
+              Complete the assigned intervention and keep the required data source
+              connected. Lab results appear only after a verified retest.
             </p>
+            <a href="/experiment">Review your active experiment →</a>
           </article>
         )}
-      </section>
-      <section className="paper-card validation-panel">
-        <div>
-          <span className="card-kicker">RESPONSE MODEL READINESS</span>
-          <h2>Predictions earn their way into the product.</h2>
-          <p>
-            Each target is evaluated separately for temporal accuracy, interval
-            calibration, supported subgroups, and out-of-range inputs. Until a
-            model passes, the app says “collecting validation” instead of
-            inventing a forecast.
-          </p>
-        </div>
-        <div className="validation-steps">
-          <span className="done">
-            <i>1</i>
-            <strong>Outcome contract</strong>
-            <small>Versioned</small>
-          </span>
-          <span>
-            <i>2</i>
-            <strong>Prospective data</strong>
-            <small>Collecting</small>
-          </span>
-          <span>
-            <i>3</i>
-            <strong>Calibration</strong>
-            <small>Gated</small>
-          </span>
-          <span>
-            <i>4</i>
-            <strong>Member estimate</strong>
-            <small>Abstains safely</small>
-          </span>
-        </div>
       </section>
       <section className="progress-controls">
         <article className="paper-card">
@@ -231,41 +213,47 @@ export function OutcomesExperience() {
             <strong>{consent ? "Contributing" : "Not contributing"}</strong>
           </label>
         </article>
-        <article className="paper-card">
-          <span className="card-kicker">PORTABLE RECORD</span>
-          <h2>FHIR R4 export</h2>
-          <p>
-            Create an ABDM-aligned bundle of observations, your current
-            protocol, and provenance. ABDM linking remains optional.
-          </p>
-          <button
-            className="secondary-button"
-            onClick={() => void exportFhir()}
-          >
-            Create health record export →
-          </button>
-        </article>
+        <article className="paper-card"><span className="card-kicker">HOW TO READ RESULTS</span><h2>Association is not always response.</h2><p>A related experiment, adherence, uncertainty, and confounders appear on each result when the current data contains them. Missing fields remain visibly unknown.</p><a href="/ask?topic=results">Ask about a result →</a></article>
       </section>
     </>
   );
 }
 
-function OutcomeCard({ item, index }: { item: Row; index: number }) {
+function ResponseAssessmentCard({ item, intervention, decision, onDecision }: { item: Row; intervention?: Row; decision?: "keep" | "change" | "stop"; onDecision: (decision: "keep" | "change" | "stop") => void }) {
+  const confounders = Array.isArray(item.confoundersJson) ? item.confoundersJson as unknown[] : [];
+  const insufficiency = Array.isArray(item.insufficiencyReasonsJson) ? item.insufficiencyReasonsJson as unknown[] : [];
+  const hasComparison = item.baselineValue !== null && item.baselineValue !== undefined && item.comparisonValue !== null && item.comparisonValue !== undefined;
+  return <article className="paper-card outcome-card" aria-labelledby={`response-${String(item.id)}`}>
+    <div><span className="card-kicker">{String(item.primaryOutcomeCode ?? "response").replaceAll("_", " ")}</span><span className="change-pill neutral">{item.percentChange === null || item.percentChange === undefined ? readableResult(item.status) : `${Number(item.percentChange) > 0 ? "+" : ""}${Number(item.percentChange).toFixed(1)}%`}</span></div>
+    <h2 id={`response-${String(item.id)}`}>{String(intervention?.title ?? "Intervention response")}</h2>
+    <p>{String(item.conclusion ?? "No reviewed conclusion is available.")}</p>
+    <div className="outcome-values"><span><small>BASELINE WINDOW</small><strong>{hasComparison ? `${Number(item.baselineValue).toFixed(1)} ${String(item.unit ?? "")}` : "Insufficient data"}</strong><i>{dateRange(item.baselineStart, item.baselineEnd)}</i></span><span><small>COMPARISON WINDOW</small><strong>{hasComparison ? `${Number(item.comparisonValue).toFixed(1)} ${String(item.unit ?? "")}` : "Insufficient data"}</strong><i>{dateRange(item.comparisonStart, item.comparisonEnd)}</i></span></div>
+    <dl className="order-detail-grid"><div><dt>Attribution</dt><dd>{readableResult(item.attributionGrade ?? "unknown")}</dd></div><div><dt>Uncertainty interval</dt><dd>{item.lowerBound !== null && item.lowerBound !== undefined && item.upperBound !== null && item.upperBound !== undefined ? `${Number(item.lowerBound).toFixed(1)} to ${Number(item.upperBound).toFixed(1)} ${String(item.unit ?? "")}` : "Not available"}</dd></div><div><dt>Adherence</dt><dd>{Number.isFinite(Number(item.adherence)) ? `${Math.round(Number(item.adherence) * 100)}%` : "Unknown"}</dd></div><div><dt>Data quality</dt><dd>{Number.isFinite(Number(item.dataQuality)) ? `${Math.round(Number(item.dataQuality) * 100)}%` : "Unknown"}</dd></div><div className="wide"><dt>Confounders</dt><dd>{confounders.length ? confounders.map(String).join("; ") : "None captured; absence of a record does not prove none occurred."}</dd></div>{insufficiency.length ? <div className="wide"><dt>Why this is not yet interpretable</dt><dd>{insufficiency.map(String).join("; ")}</dd></div> : null}</dl>
+    <p><strong>Engine recommendation:</strong> {readableResult(item.recommendedDecision ?? "not available")}. You make the final decision after reviewing the evidence.</p>
+    <fieldset className="intake-actions"><legend className="card-kicker">YOUR DECISION</legend>{(["keep", "change", "stop"] as const).map((value) => <button key={value} type="button" className={decision === value ? "primary-button" : "quiet-button"} aria-pressed={decision === value} onClick={() => onDecision(value)}>{value === "keep" ? "Keep and confirm" : value === "change" ? "Change and retest" : "Stop and review"}</button>)}</fieldset>
+  </article>;
+}
+
+function readableResult(value: unknown) { return String(value ?? "").replaceAll("_", " "); }
+function dateRange(start: unknown, end: unknown) { const format = (value: unknown) => value ? new Date(String(value)).toLocaleDateString() : "unknown"; return `${format(start)} – ${format(end)}`; }
+
+function OutcomeCard({ item, index, experiment, decision, onDecision }: { item: Row; index: number; experiment?: Row; decision?: "keep" | "change" | "stop"; onDecision: (decision: "keep" | "change" | "stop") => void }) {
   const change = Number(item.absoluteChange ?? 0);
   const percent =
     item.percentChange === null || item.percentChange === undefined
       ? null
       : Number(item.percentChange);
-  const favourable = [
-    "resting_hr",
-    "apob",
-    "homa_ir",
-    "hba1c",
-    "fasting_glucose",
-  ].includes(String(item.targetCode))
-    ? change < 0
-    : change > 0;
   const label = String(item.targetCode).replaceAll("_", " ");
+  const experimentResult = (experiment?.resultJson as Row | undefined) ?? {};
+  const interval = Array.isArray(experimentResult.interval) ? experimentResult.interval as unknown[] : [];
+  const periods = (experiment?.periods as Row[] | undefined) ?? [];
+  const confounders = periods.flatMap((period) => {
+    const context = (period.contextJson as Row | undefined) ?? {};
+    return typeof context.note === "string" && context.note.trim() ? [context.note.trim()] : [];
+  });
+  const attribution = experiment
+    ? "A completed experiment targets this metric, but this baseline-to-latest card is not yet tied to that experiment's exact comparison window. Treat the relationship as contextual, not causal."
+    : "No completed intervention is linked to this comparison. It shows longitudinal movement only—not what caused it.";
   const path = useMemo(() => {
     const base = Number(item.baselineValue);
     const current = Number(item.currentValue);
@@ -281,7 +269,7 @@ function OutcomeCard({ item, index }: { item: Row; index: number }) {
     <article className="paper-card outcome-card">
       <div>
         <span className="card-kicker">{label}</span>
-        <span className={`change-pill ${favourable ? "positive" : "neutral"}`}>
+        <span className="change-pill neutral">
           {change > 0 ? "+" : ""}
           {percent !== null
             ? `${percent.toFixed(1)}%`
@@ -315,19 +303,32 @@ function OutcomeCard({ item, index }: { item: Row; index: number }) {
         </span>
       </div>
       <footer>
-        <span>Quality {Math.round(Number(item.quality) * 100)}%</span>
+        <span>Data quality {Math.round(Number(item.quality) * 100)}% · {Array.isArray(item.sourceRefsJson) ? item.sourceRefsJson.length : 0} source references</span>
         <a href="/data">Inspect sources →</a>
       </footer>
+      <div className="protocol-rationale">
+        <div><span className="card-kicker">INTERVENTION LINK</span><h3>{experiment ? String(experiment.title) : "No linked intervention"}</h3><p>{attribution}</p></div>
+        <div className="relationship-flow"><span>{experiment ? String(experiment.title) : "Unknown intervention"}</span><i>→</i><span className="middle">{label}</span><i>→</i><span>{experiment ? String(experimentResult.conclusion ?? "Insufficient experiment data") : "Attribution unavailable"}</span></div>
+        <p><strong>Uncertainty:</strong> {interval.length === 2 ? `${Number(interval[0]).toFixed(1)} to ${Number(interval[1]).toFixed(1)} ${String(item.unit)}` : "No interval is available for this comparison."}</p>
+        <p><strong>Confounders:</strong> {confounders.length ? confounders.join("; ") : "None were captured in the current record; this does not prove none occurred."}</p>
+      </div>
+      <fieldset className="intake-actions">
+        <legend className="card-kicker">WHAT SHOULD HAPPEN NEXT?</legend>
+        {(["keep", "change", "stop"] as const).map((value) => <button key={value} type="button" className={decision === value ? "primary-button" : "quiet-button"} aria-pressed={decision === value} onClick={() => onDecision(value)}>{value === "keep" ? "Keep and confirm" : value === "change" ? "Change and retest" : "Stop and review"}</button>)}
+      </fieldset>
     </article>
   );
 }
 
 export function ExperimentsExperience() {
+  const { data: appData } = useAppData();
   const [data, setData] = useState<{
     templates: Row[];
     experiments: Row[];
   } | null>(null);
   const [notice, setNotice] = useState("");
+  const [reviewCode, setReviewCode] = useState("");
+  const [acknowledged, setAcknowledged] = useState(false);
   const load = () =>
     fetch("/api/experiments", { cache: "no-store" })
       .then(
@@ -339,6 +340,17 @@ export function ExperimentsExperience() {
     void load();
   }, []);
   const active = data?.experiments.find((item) => item.status === "active");
+  const selected = data?.templates.find((item) => item.code === reviewCode);
+  const selectedMethodology = (selected?.methodology as Row | undefined) ?? {};
+  const selectedRequirements = (selectedMethodology.dataRequirements as Row | undefined) ?? {};
+  const selectedEligibility = (selectedMethodology.eligibility as Row | undefined) ?? {};
+  const wearableReady = appData?.wearableConnections.some((item) => item.status === "active") ?? false;
+  const contextReady = Boolean(appData && appData.intake.answered >= Math.min(10, appData.intake.total));
+  const safetyDecision = appData?.responseState?.safetyDecisions.find((item) => item.id === appData.responseState.priorityAssessment?.safetyDecisionId);
+  const safetyReady = safetyDecision?.status === "eligible_for_wellness_experiment";
+  const measurementReady = selectedRequirements.source === "observations"
+    ? appData?.observations.some((item) => item.conceptCode === selectedRequirements.metric && item.valueNumber !== null) ?? false
+    : wearableReady;
   const start = async (code: string) => {
     const response = await fetch("/api/experiments", {
       method: "POST",
@@ -352,6 +364,7 @@ export function ExperimentsExperience() {
         : (result.error ?? "Could not start"),
     );
     await load();
+    if (response.ok) { setReviewCode(""); setAcknowledged(false); }
   };
   const check = async (periodId: string, completed: boolean) => {
     await fetch("/api/experiments/check-in", {
@@ -373,19 +386,18 @@ export function ExperimentsExperience() {
       ) : (
         <section className="experiment-intro paper-card">
           <div>
-            <span className="card-kicker">YOUR N-OF-1 LAB</span>
-            <h2>Learn from your own response.</h2>
+            <span className="card-kicker">CHOOSE ONE MEASURABLE QUESTION</span>
+            <h2>Review before you begin.</h2>
             <p>
-              Run one low-friction comparison at a time. The app randomizes two
-              routines, captures adherence and wearable outcomes, then shows the
-              effect with uncertainty—not a premature verdict.
+              Each option changes one routine and measures one wearable outcome.
+              Selection is not a diagnosis or medical recommendation, and only one
+              experiment can run at a time.
             </p>
           </div>
-          <span className="experiment-number">
-            14<small>days</small>
-          </span>
+          <span className="experiment-number">1<small>change</small></span>
         </section>
       )}
+      {selected && !active ? <section className="paper-card validation-panel" aria-labelledby="experiment-review-title"><div><span className="card-kicker">PRE-START REVIEW</span><h2 id="experiment-review-title">{String(selected.title)}</h2><p>{String(selected.hypothesis)}</p><dl className="order-detail-grid"><div><dt>Routine A</dt><dd>{String(selected.a)}</dd></div><div><dt>Routine B</dt><dd>{String(selected.b)}</dd></div><div><dt>Primary outcome</dt><dd>{String(selected.outcome).replaceAll("_", " ")}</dd></div><div><dt>Design and duration</dt><dd>{selectedMethodology.designType ? `${String(selectedMethodology.designType).replaceAll("_", " ")} · ${String(selectedMethodology.durationDays)} days` : "Methodology not supplied"}</dd></div><div className="wide"><dt>Data requirement</dt><dd>{String(selectedRequirements.description ?? "The required baseline contract is not available.")}</dd></div><div className="wide"><dt>Do not start when</dt><dd>{Array.isArray(selectedEligibility.exclusions) ? selectedEligibility.exclusions.join("; ") : "Experiment-specific exclusions are not available."}</dd></div></dl></div><div className="validation-steps"><span className={contextReady ? "done" : ""}><i>1</i><strong>Essential context</strong><small>{contextReady ? "Complete" : "Complete intake"}</small></span><span className={measurementReady ? "done" : ""}><i>2</i><strong>Outcome source</strong><small>{measurementReady ? "Detected" : "Required data not detected"}</small></span><span className={appData?.responseState?.priorityAssessment ? "done" : ""}><i>3</i><strong>Priority ranking</strong><small>{appData?.responseState?.priorityAssessment ? "Calculated" : "Calculate above"}</small></span><span className={safetyReady ? "done" : ""}><i>4</i><strong>Safety decision</strong><small>{safetyReady ? "Eligible for wellness experiment" : String(safetyDecision?.status ?? "Not assessed").replaceAll("_", " ")}</small></span></div><label className="consent-toggle"><input type="checkbox" checked={acknowledged} onChange={(event) => setAcknowledged(event.target.checked)} /><span/><strong>I reviewed the instructions and exclusions and will stop if I feel unwell.</strong></label><div className="intake-actions"><button className="quiet-button" type="button" onClick={() => { setReviewCode(""); setAcknowledged(false); }}>Choose another</button><button className="primary-button" type="button" disabled={!measurementReady || !contextReady || !safetyReady || !acknowledged} onClick={() => void start(String(selected.code))}>Start this experiment →</button></div><p><small>The API rechecks the intervention-specific safety decision and historical data before creating the response cycle. Urgent symptoms or critical results belong in medical care, not a wellness experiment.</small></p></section> : null}
       <section className="template-grid">
         {(data?.templates ?? []).map((template) => (
           <article
@@ -402,11 +414,12 @@ export function ExperimentsExperience() {
               <span>A · {String(template.a)}</span>
               <span>B · {String(template.b)}</span>
             </div>
+            <p><small>{String(template.availability ?? "readiness checked before start").replaceAll("_", " ")}</small></p>
             <button
               disabled={Boolean(active)}
-              onClick={() => void start(String(template.code))}
+              onClick={() => { setReviewCode(String(template.code)); setAcknowledged(false); }}
             >
-              {active ? "One experiment active" : "Start this experiment →"}
+              {active ? "One experiment active" : reviewCode === String(template.code) ? "Selected for review" : "Review this experiment →"}
             </button>
           </article>
         ))}
@@ -457,7 +470,7 @@ function ActiveExperiment({
       <div className="active-experiment-head">
         <div>
           <span className="card-kicker">
-            ACTIVE EXPERIMENT · {completed}/14 DAYS
+            ACTIVE EXPERIMENT · {completed}/{periods.length} DAYS
           </span>
           <h2>{String(experiment.title)}</h2>
           <p>{String(experiment.hypothesis)}</p>

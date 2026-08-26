@@ -21,6 +21,7 @@ export type AppData = {
   wearableConnections: Array<Record<string, unknown>>;
   integrations: Record<string, { mode: string; ready: boolean }>;
   phase3: { outcomes: Array<Record<string, unknown>>; researchConsent: (Record<string, unknown> & { granted: boolean }) | null; companions: Array<Record<string, unknown>>; experiments: Array<Record<string, unknown>>; predictions: Array<Record<string, unknown>>; jurisdiction: Record<string, unknown> };
+  responseState: { goal: Record<string, unknown> | null; priorityAssessment: Record<string, unknown> | null; priorityCandidates: Array<Record<string, unknown>>; safetyDecisions: Array<Record<string, unknown>>; interventions: Array<Record<string, unknown>>; responseAssessments: Array<Record<string, unknown>> };
   interoperability: Record<string, { mode?: string; standard?: string; profile?: string; ready: boolean }>;
 };
 

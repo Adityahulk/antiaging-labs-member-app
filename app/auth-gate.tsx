@@ -20,9 +20,9 @@ export async function AuthGate({ children }: { children: ReactNode }) {
     <main className="auth-screen">
       <section className="auth-card">
         <span className="auth-mark">A</span>
-        <p className="eyebrow">ANTIAGING LABS MEMBER OS</p>
-        <h1>Your health journey, in one place.</h1>
-        <p>Sign in to see your tests, connected data, Biological Twin, reports, protocol, and personal guidance.</p>
+        <p className="eyebrow">YOUR PERSONAL RESPONSE TWIN</p>
+        <h1>Learn what actually works for your body.</h1>
+        <p>Connect inherited context, biomarkers and daily signals. Test one safe change at a time and measure your response.</p>
         <AuthForm />
       </section>
     </main>

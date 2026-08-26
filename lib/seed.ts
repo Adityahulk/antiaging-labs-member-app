@@ -9,8 +9,8 @@ const journey = [
   ["collection", "Blood collection", "At-home appointment", "current", 4, "2026-08-20T02:00:00.000Z"],
   ["processing", "Laboratory processing", "Expected 2–3 days", "future", 5, "2026-08-22T09:00:00.000Z"],
   ["analysis", "Analysis", "Data joined into your Twin", "future", 6, "2026-08-23T09:00:00.000Z"],
-  ["protocol", "Protocol ready", "Complete 12-week plan", "future", 7, "2026-08-24T09:00:00.000Z"],
-  ["retest", "Retest", "Measure your response", "future", 8, "2026-11-10T09:00:00.000Z"],
+  ["protocol", "Experiment ready", "One measurable change", "future", 7, "2026-08-24T09:00:00.000Z"],
+  ["retest", "Review response", "Keep, change, stop, or repeat", "future", 8, "2026-09-22T09:00:00.000Z"],
 ] as const;
 
 const sources = [
@@ -43,12 +43,7 @@ const observations = [
 ] as const;
 
 const actions = [
-  ["recovery", 3, "07:15", "Morning light", "12 minutes outdoors", "Circadian rhythm", "Complete before 8:00 AM", 1, 1],
-  ["nutrition", 3, "08:30", "Protein-first breakfast", "35 g protein · 10 g fibre", "Metabolic · Muscle", "35 g protein", 1, 2],
-  ["nutrition", 3, "12:40", "Post-lunch walk", "12 minutes · easy pace", "Glucose response", "12 minutes", 0, 3],
-  ["training", 3, "17:30", "Zone 2 training", "35 minutes · HR 132–146", "Cardio · Metabolic", "35 minutes", 0, 4],
-  ["supplements", 3, "20:00", "Magnesium glycinate", "200 mg with dinner", "Recovery · Sleep", "200 mg", 0, 5],
-  ["recovery", 3, "22:20", "Wind-down sequence", "Dim light · reading · 10 min breathwork", "Sleep regularity", "10 minutes", 0, 6],
+  ["sleep", 3, "13:00", "Earlier caffeine cutoff", "No caffeine after 1 pm on assigned intervention days", "Test a sleep-duration response with wearable data", "28-day randomized crossover", 0, 1],
 ] as const;
 
 export async function ensureMemberSeed(identity: MemberIdentity): Promise<void> {
@@ -71,8 +66,8 @@ export async function ensureMemberSeed(identity: MemberIdentity): Promise<void> 
       ["wearables", "Connect your wearable", "Add Oura, WHOOP, Apple Health, or an export", "future", 4],
       ["collection", "Collection or kit", "Your concierge team will add booking and tracking details", "future", 5],
       ["analysis", "Analysis", "Verified data is integrated into your Biological Twin", "future", 6],
-      ["protocol", "Protocol ready", "Your personalized plan is published here", "future", 7],
-      ["retest", "Retest", "Measure change and update your protocol", "future", 8],
+      ["protocol", "Experiment ready", "One safe, measurable change is proposed here", "future", 7],
+      ["retest", "Review response", "Decide to keep, change, stop, or repeat", "future", 8],
     ] as const;
     const statements: D1PreparedStatement[] = [
       database.prepare("INSERT INTO members (id, email, full_name, primary_goal, created_at, updated_at) VALUES (?, ?, ?, '', ?, ?)").bind(identity.id, identity.email, identity.fullName, now, now),
@@ -88,7 +83,7 @@ export async function ensureMemberSeed(identity: MemberIdentity): Promise<void> 
   const snapshotId = id("twin");
   const statements: D1PreparedStatement[] = [
     database.prepare("INSERT INTO members (id, email, full_name, primary_goal, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)").bind(identity.id, identity.email, identity.fullName, "Improve insulin sensitivity, reduce ApoB, and build aerobic capacity", now, now),
-    database.prepare("INSERT INTO protocol_versions (id, member_id, version, status, title, strategy, started_at, ends_at, created_at, updated_at) VALUES (?, ?, 2, 'current', ?, ?, ?, ?, ?, ?)").bind(protocolId, identity.id, "12-week longevity protocol", "Improve insulin sensitivity, lower ApoB exposure, and rebuild recovery consistency.", "2026-08-02", "2026-10-25", now, now),
+    database.prepare("INSERT INTO protocol_versions (id, member_id, version, status, title, strategy, started_at, ends_at, created_at, updated_at) VALUES (?, ?, 2, 'current', ?, ?, ?, ?, ?, ?)").bind(protocolId, identity.id, "28-day response experiment", "Test one change at a time and learn from the measured response.", "2026-08-02", "2026-08-30", now, now),
     database.prepare("INSERT INTO twin_snapshots (id, member_id, version, as_of, coverage, summary, created_at) VALUES (?, ?, 1, ?, 87, ?, ?)").bind(snapshotId, identity.id, now, "Metabolic health and sleep timing are improving; recovery is temporarily below baseline; ApoB remains the main cardiovascular priority.", now),
   ];
 
