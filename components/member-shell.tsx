@@ -21,13 +21,14 @@ const libraryNavigation = [
 
 function stageFor(data: ReturnType<typeof useAppData>["data"]) {
   if (!data) return { label: "Loading your state", detail: "Connecting your secure health record", progress: 8 };
+  const activeExperiment = data.responseState?.interventions.find((item) => item.status === "active") ?? data.phase3.experiments.find((item) => item.status === "active");
+  if (activeExperiment) return { label: "Learning from your response", detail: String(activeExperiment.title ?? "One experiment is active"), progress: 76 };
+  if (data.responseState?.responseAssessments.length) return { label: "A result is ready", detail: "Review what changed and choose what happens next", progress: 92 };
   if (data.intake.answered < Math.min(10, data.intake.total)) return { label: "Complete your context", detail: "Answer the essentials so analysis can begin", progress: 18 };
   const hasSignals = data.sources.length > 0 || data.wearableConnections.some((item) => item.status === "active") || data.observations.length > 0;
   if (!hasSignals) return { label: "Add your first signal", detail: "Connect a wearable or import existing data", progress: 32 };
   if (!data.twin) return { label: "Building your baseline", detail: "Checking coverage, quality and missing context", progress: 48 };
-  const activeExperiment = data.responseState?.interventions.find((item) => item.status === "active") ?? data.phase3.experiments.find((item) => item.status === "active");
-  if (activeExperiment) return { label: "Learning from your response", detail: String(activeExperiment.title ?? "One experiment is active"), progress: 76 };
-  if (data.responseState?.responseAssessments.length || data.phase3.outcomes.length) return { label: "A result is ready", detail: "Review what changed and choose what happens next", progress: 92 };
+  if (data.phase3.outcomes.length) return { label: "Health trends available", detail: "Review movement while your Twin gathers causal evidence", progress: 68 };
   return { label: "Choose your first learning cycle", detail: "Your data is ready for one focused experiment", progress: 62 };
 }
 

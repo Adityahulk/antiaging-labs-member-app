@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { MemberShell, PageHeader } from "@/components/member-shell";
-import { OutcomesExperience, OutcomesLoader } from "@/components/phase3-experiences";
+import { OutcomesLoader } from "@/components/phase3-experiences";
+import { CustomerResultsExperience } from "@/components/customer-results-experience";
 
 export const metadata: Metadata = {
   title: "Your Results — Antiaging Labs",
@@ -8,5 +9,5 @@ export const metadata: Metadata = {
 };
 
 export default function ResultsPage() {
-  return <MemberShell><PageHeader eyebrow="YOUR RESULTS" title="What changed—and what we learned." description="Inspect the comparison, uncertainty, confounders, and intervention link before choosing to keep, change, or stop." /><OutcomesLoader /><OutcomesExperience /></MemberShell>;
+  return <MemberShell><PageHeader eyebrow="YOUR RESULTS" title="What changed—and what we learned." description="Experiment results show your response to one change. Health trends show movement without claiming what caused it." /><OutcomesLoader /><CustomerResultsExperience /></MemberShell>;
 }
