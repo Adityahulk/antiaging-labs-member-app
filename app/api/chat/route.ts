@@ -3,6 +3,7 @@ import { getMemberIdentity } from "@/lib/member";
 import { ensureMemberSeed } from "@/lib/seed";
 import { hmacHex } from "@/lib/integrations";
 import { aiGatewayStatus, runAI } from "@/lib/ai-gateway";
+import { createSupportTicket } from "@/lib/support";
 
 const chatSchema = {
   type: "object",
@@ -66,6 +67,7 @@ export async function POST(request: Request) {
   const now = nowIso();
   const escalated=safety.escalate||modelEscalated;const safetyClass=modelEscalated&&!safety.escalate?"model_review":safety.classification;
   const sources = escalated ? [`Safety policy: ${safetyClass}`,"Human follow-up requested"] : [`ApoB: ${context.apob}`, `HRV: ${context.hrv}`, `Twin snapshot v${String(snapshot?.version??"—")}`, `Protocol: ${protocol?.strategy??"not published"}`,...findings.results.slice(0,2).map((row)=>`Finding: ${String((row as Record<string,unknown>).title)}`),...genetics.results.slice(0,2).map((row)=>`Reviewed genetics: ${String((row as Record<string,unknown>).gene)} ${String((row as Record<string,unknown>).rsid)}`)];
+  if (escalated) await createSupportTicket({ memberId: identity.id, category: "safety", urgency: safetyClass === "urgent" ? "urgent" : "priority", subject: safetyClass === "urgent" ? "Urgent chat safety escalation" : "Chat question needs qualified review", message, source: "chat_safety" });
   const userMessageId=id("msg"), assistantMessageId=id("msg"); const snapshotHash=await hmacHex(identity.id,JSON.stringify(grounding));
   await db.batch([
     db.prepare("INSERT INTO chat_messages (id, member_id, conversation_id, role, content, sources_json, created_at) VALUES (?, ?, 'default', 'user', ?, '[]', ?)").bind(userMessageId, identity.id, message, now),
@@ -75,4 +77,4 @@ export async function POST(request: Request) {
   return Response.json({ role: "assistant", text: answer, data: sources });
 }
 
-export function classifyQuestion(message:string){const q=message.toLowerCase();const high=["chest pain","can't breathe","cannot breathe","fainting","suicide","self harm","kill myself","overdose","severe bleeding","stroke symptoms","anaphylaxis"];if(high.some(term=>q.includes(term)))return{classification:"urgent",escalate:true,answer:"This could need immediate help. Contact local emergency services now or go to the nearest emergency department. I’ve kept this message in your history so the support team can follow up."};const review=["stop my medicine","change my medication","increase dose","decrease dose","pregnant","breastfeeding","new supplement dose","start a supplement","diagnose me","treat my","kidney failure","liver failure","pathogenic variant","critical result"];if(review.some(term=>q.includes(term)))return{classification:"human_review",escalate:true,answer:"I can explain your existing data and plan, but this needs a qualified human review before changing anything. I’ve flagged the question for follow-up; keep your current plan unchanged until then."};return{classification:"wellness",escalate:false,answer:""};}
+export function classifyQuestion(message:string){const q=message.toLowerCase();const high=["chest pain","can't breathe","cannot breathe","fainting","suicide","self harm","kill myself","overdose","severe bleeding","stroke symptoms","anaphylaxis"];if(high.some(term=>q.includes(term)))return{classification:"urgent",escalate:true,answer:"This could need immediate help. Contact local emergency services now or go to the nearest emergency department. Antiaging Labs does not monitor this chat or provide emergency response."};const review=["stop my medicine","change my medication","increase dose","decrease dose","pregnant","breastfeeding","new supplement dose","start a supplement","diagnose me","treat my","kidney failure","liver failure","pathogenic variant","critical result"];if(review.some(term=>q.includes(term)))return{classification:"human_review",escalate:true,answer:"I can explain your existing data and plan, but this needs qualified review before changing anything. I’ve opened a priority support request; this is not emergency care. Keep your current plan unchanged until reviewed."};return{classification:"wellness",escalate:false,answer:""};}

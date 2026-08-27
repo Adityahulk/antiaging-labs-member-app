@@ -17,6 +17,7 @@ const libraryNavigation = [
   { href: "/genetics", label: "Inherited context" },
   { href: "/reports", label: "Reports" },
   { href: "/tests", label: "Tests & orders" },
+  { href: "/support", label: "Privacy & support" },
 ];
 
 function stageFor(data: ReturnType<typeof useAppData>["data"]) {

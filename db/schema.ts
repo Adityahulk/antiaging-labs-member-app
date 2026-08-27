@@ -375,6 +375,14 @@ export const backupRuns = sqliteTable("backup_runs", {
   error: text("error"),
 }, (table) => [index("idx_backup_runs_status_created").on(table.status, table.createdAt)]);
 
+export const supportTickets = sqliteTable("support_tickets", {
+  id: text("id").primaryKey(), memberId: text("member_id").notNull(), category: text("category").notNull(), urgency: text("urgency").notNull(), subject: text("subject").notNull(), message: text("message").notNull(), status: text("status").notNull(), source: text("source").notNull(), createdAt: text("created_at").notNull(), updatedAt: text("updated_at").notNull(), resolvedAt: text("resolved_at"),
+}, (table) => [index("idx_support_tickets_status_created").on(table.status, table.createdAt), index("idx_support_tickets_member_created").on(table.memberId, table.createdAt)]);
+
+export const dataRightsRequests = sqliteTable("data_rights_requests", {
+  id: text("id").primaryKey(), memberId: text("member_id").notNull(), requestType: text("request_type").notNull(), status: text("status").notNull(), note: text("note").notNull(), createdAt: text("created_at").notNull(), updatedAt: text("updated_at").notNull(), completedAt: text("completed_at"),
+}, (table) => [index("idx_rights_requests_member_status").on(table.memberId, table.status)]);
+
 export const memberGoals = sqliteTable("member_goals", {
   id: text("id").primaryKey(),
   memberId: text("member_id").notNull(),
