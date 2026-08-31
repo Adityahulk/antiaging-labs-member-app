@@ -14,9 +14,9 @@ test("ships the complete member experience instead of the starter", async () => 
   ]);
   assert.match(home, /TodayExperience/);
   assert.match(layout, /Antiaging Labs/);
-  assert.match(shell, /Twin/);
-  assert.match(shell, /Experiment/);
-  assert.match(shell, /Results/);
+  assert.match(shell, /My Twin/);
+  assert.match(shell, /My Plan/);
+  assert.match(shell, /Learnings/);
   assert.match(styles, /expanded-map/);
   assert.doesNotMatch(home, /SkeletonPreview|codex-preview/);
 });
@@ -168,8 +168,8 @@ test("contains Phase 3 native sync, outcome validation, experiments, and interop
   assert.match(experiments, /CHOOSE ONE MEASURABLE QUESTION/);
   assert.match(fhir, /FHIR R4/);
   assert.match(fhir, /Provenance/);
-  assert.match(ui, /Results/);
-  assert.match(ui, /Experiment/);
+  assert.match(ui, /Learnings/);
+  assert.match(ui, /My Plan/);
 });
 
 test("ships reproducible web, Android, and iOS build pipelines", async () => {

@@ -4,15 +4,15 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Ask — Antiaging Labs",
-  description: "Personal answers grounded in your health data, Twin, and current protocol.",
-  openGraph: { title: "Ask — Antiaging Labs", description: "Personal answers grounded in your data and protocol.", images: [] },
-  twitter: { title: "Ask — Antiaging Labs", description: "Personal answers grounded in your data and protocol.", images: [] },
+  description: "Personal answers grounded in your plan, health data, and measured responses.",
+  openGraph: { title: "Ask — Antiaging Labs", description: "Personal answers grounded in your plan and measured responses.", images: [] },
+  twitter: { title: "Ask — Antiaging Labs", description: "Personal answers grounded in your plan and measured responses.", images: [] },
 };
 
 export default function AskPage() {
   return (
     <MemberShell>
-      <PageHeader eyebrow="ASK" title="Your health, in conversation." description="Personal answers grounded in your data, Twin, and current protocol." />
+      <PageHeader eyebrow="ASK YOUR TWIN" title="Ask about today, your plan, or what we have learned." description="Direct answers grounded in your own data, with the reasoning and remaining uncertainty kept visible." />
       <ChatExperience />
     </MemberShell>
   );

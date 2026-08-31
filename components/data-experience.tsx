@@ -103,7 +103,6 @@ export function DataExperience() {
                 <strong>{Math.round(source.coverage)}%</strong>
                 <small>coverage</small>
               </span>
-              <span className="row-arrow">→</span>
             </div>
           ))}
         </div>

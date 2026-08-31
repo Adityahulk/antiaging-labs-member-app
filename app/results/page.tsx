@@ -1,13 +1,3 @@
-import type { Metadata } from "next";
-import { MemberShell, PageHeader } from "@/components/member-shell";
-import { OutcomesLoader } from "@/components/phase3-experiences";
-import { CustomerResultsExperience } from "@/components/customer-results-experience";
+import { redirect } from "next/navigation";
 
-export const metadata: Metadata = {
-  title: "Your Results — Antiaging Labs",
-  description: "Intervention-linked results with uncertainty, confounders, and source evidence.",
-};
-
-export default function ResultsPage() {
-  return <MemberShell><PageHeader eyebrow="YOUR RESULTS" title="What changed—and what we learned." description="Experiment results show your response to one change. Health trends show movement without claiming what caused it." /><OutcomesLoader /><CustomerResultsExperience /></MemberShell>;
-}
+export default function ResultsPage() { redirect("/learnings"); }

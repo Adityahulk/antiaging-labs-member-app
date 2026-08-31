@@ -25,32 +25,62 @@ export type AppData = {
   interoperability: Record<string, { mode?: string; standard?: string; profile?: string; ready: boolean }>;
 };
 
-type ContextValue = { data: AppData | null; loading: boolean; refresh: () => Promise<void>; toggleAction: (id: number, done: boolean) => Promise<void> };
+type ContextValue = {
+  data: AppData | null;
+  loading: boolean;
+  /** Set when the member record could not be loaded. While this is non-null,
+   *  callers must not render values — a partial or absent record would be
+   *  indistinguishable from a real health record of zeroes. */
+  error: string | null;
+  refresh: () => Promise<void>;
+  toggleAction: (id: number, done: boolean) => Promise<void>;
+};
 const AppContext = createContext<ContextValue | null>(null);
+
+const LOAD_FAILED = "We could not reach your health record. Nothing shown below would be trustworthy, so we have stopped here.";
+
+async function fetchBootstrap(): Promise<AppData> {
+  const response = await fetch("/api/bootstrap", { cache: "no-store" });
+  if (!response.ok) throw new Error(LOAD_FAILED);
+  return await response.json() as AppData;
+}
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [data, setData] = useState<AppData | null>(null);
   const [loading, setLoading] = useState(true);
-  const refresh = useCallback(async () => {
-    const response = await fetch("/api/bootstrap", { cache: "no-store" });
-    if (!response.ok) throw new Error("Could not load member data");
-    setData(await response.json() as AppData);
-    setLoading(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      setData(await fetchBootstrap());
+      setError(null);
+    } catch {
+      setData(null);
+      setError(LOAD_FAILED);
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  // The initial load stays as a promise chain rather than `await load()` so no
+  // state is set synchronously inside the effect body.
   useEffect(() => {
-    fetch("/api/bootstrap", { cache: "no-store" })
-      .then((response) => response.ok ? response.json() as Promise<AppData> : Promise.reject(new Error("Could not load member data")))
-      .then((next) => { setData(next); setLoading(false); })
-      .catch(() => setLoading(false));
+    let live = true;
+    void fetchBootstrap()
+      .then((next) => { if (live) { setData(next); setError(null); } })
+      .catch(() => { if (live) { setData(null); setError(LOAD_FAILED); } })
+      .finally(() => { if (live) setLoading(false); });
+    return () => { live = false; };
   }, []);
 
   const toggleAction = useCallback(async (id: number, done: boolean) => {
     setData((current) => current?.protocol ? { ...current, protocol: { ...current.protocol, actions: current.protocol.actions.map((action) => action.id === id ? { ...action, done } : action) } } : current);
     const response = await fetch(`/api/protocol/actions/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ done }) });
-    if (!response.ok) await refresh();
-  }, [refresh]);
+    if (!response.ok) await load();
+  }, [load]);
 
-  const value = useMemo(() => ({ data, loading, refresh, toggleAction }), [data, loading, refresh, toggleAction]);
+  const value = useMemo(() => ({ data, loading, error, refresh: load, toggleAction }), [data, loading, error, load, toggleAction]);
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }
 

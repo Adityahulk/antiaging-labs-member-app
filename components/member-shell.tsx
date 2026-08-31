@@ -4,18 +4,21 @@ import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { useAppData } from "./app-provider";
+import { Button } from "./ui/button";
+import { Meter } from "./ui/meter";
 
 const primaryNavigation = [
   { href: "/", label: "Today", glyph: "01" },
-  { href: "/experiment", label: "Experiment", glyph: "02" },
-  { href: "/results", label: "Results", glyph: "03" },
-  { href: "/twin", label: "Twin", glyph: "04" },
+  { href: "/plan", label: "My Plan", glyph: "02" },
+  { href: "/learnings", label: "Learnings", glyph: "03" },
+  { href: "/twin", label: "My Twin", glyph: "04" },
 ];
 
 const libraryNavigation = [
   { href: "/data", label: "Data sources" },
   { href: "/genetics", label: "Inherited context" },
   { href: "/reports", label: "Reports" },
+  { href: "/journey", label: "Programme timeline" },
   { href: "/tests", label: "Tests & orders" },
   { href: "/support", label: "Privacy & support" },
 ];
@@ -35,10 +38,12 @@ function stageFor(data: ReturnType<typeof useAppData>["data"]) {
 
 export function MemberShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const { data } = useAppData();
+  const { data, error, refresh } = useAppData();
   const name = data?.member?.fullName?.trim() || "Member";
   const initials = name.split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase();
-  const stage = stageFor(data);
+  const stage = error
+    ? { label: "Record unavailable", detail: "We could not reach your health record", progress: 0 }
+    : stageFor(data);
 
   return (
     <div className="app-shell response-shell">
@@ -49,12 +54,13 @@ export function MemberShell({ children }: { children: ReactNode }) {
         </Link>
         <nav className="primary-nav response-primary-nav" aria-label="Primary navigation">
           {primaryNavigation.map((item) => {
-            const active = item.href === "/" ? pathname === "/" : pathname === item.href || (item.href === "/experiment" && pathname === "/experiments") || (item.href === "/results" && pathname === "/outcomes");
+            const active = item.href === "/" ? pathname === "/" : pathname === item.href || (item.href === "/plan" && ["/experiment", "/experiments", "/protocol"].includes(pathname)) || (item.href === "/learnings" && ["/results", "/outcomes"].includes(pathname));
             return <Link key={item.href} className={`nav-item ${active ? "active" : ""}`} href={item.href}><span>{item.glyph}</span>{item.label}</Link>;
           })}
         </nav>
         <div className="response-stage-card">
-          <span>YOUR CURRENT STAGE</span><strong>{stage.label}</strong><p>{stage.detail}</p><div><i style={{ width: `${stage.progress}%` }} /></div>
+          <span>YOUR CURRENT STAGE</span><strong>{stage.label}</strong><p>{stage.detail}</p>
+          <Meter value={stage.progress} label={`Programme progress: ${stage.label}`} />
         </div>
         <nav className="library-nav" aria-label="Health record and settings">
           <span>YOUR RECORD</span>
@@ -65,10 +71,21 @@ export function MemberShell({ children }: { children: ReactNode }) {
           <span className="avatar">{initials}</span><span><strong>{name}</strong><small>Founding member</small></span><span className="more">SIGN OUT</span>
         </a>
       </aside>
-      <main className="main-content subpage-main response-main">{children}</main>
+      <main className="main-content subpage-main response-main">
+        {error ? (
+          <div className="shell-failure">
+            <div className="record-unavailable paper-card" role="alert">
+              <span className="card-kicker">RECORD UNAVAILABLE</span>
+              <h2>We stopped rather than show you the wrong numbers.</h2>
+              <p>{error}</p>
+              <Button onClick={() => void refresh()}>Try again</Button>
+            </div>
+          </div>
+        ) : children}
+      </main>
       <Link className="floating-guide" href="/ask" aria-label="Ask your data-aware guide"><span>✦</span> Ask your Twin</Link>
       <nav className="mobile-nav response-mobile-nav" aria-label="Mobile navigation">
-        {primaryNavigation.map((item) => <Link className={(item.href === "/" ? pathname === "/" : pathname.startsWith(item.href)) ? "active" : ""} href={item.href} key={item.href}><span>{item.glyph}</span>{item.label}</Link>)}
+        {primaryNavigation.map((item) => <Link className={(item.href === "/" ? pathname === "/" : pathname.startsWith(item.href) || (item.href === "/plan" && pathname.startsWith("/experiment")) || (item.href === "/learnings" && pathname.startsWith("/result"))) ? "active" : ""} href={item.href} key={item.href}><span>{item.glyph}</span>{item.label}</Link>)}
       </nav>
     </div>
   );

@@ -191,7 +191,7 @@ export function OutcomesExperience() {
               Complete the assigned intervention and keep the required data source
               connected. Lab results appear only after a verified retest.
             </p>
-            <a href="/experiment">Review your active experiment →</a>
+            <a href="/plan">Review your current response test →</a>
           </article>
         )}
       </section>
@@ -391,13 +391,13 @@ export function ExperimentsExperience() {
             <p>
               Each option changes one routine and measures one wearable outcome.
               Selection is not a diagnosis or medical recommendation, and only one
-              experiment can run at a time.
+              focused response test can run at a time.
             </p>
           </div>
           <span className="experiment-number">1<small>change</small></span>
         </section>
       )}
-      {selected && !active ? <section className="paper-card validation-panel" aria-labelledby="experiment-review-title"><div><span className="card-kicker">PRE-START REVIEW</span><h2 id="experiment-review-title">{String(selected.title)}</h2><p>{String(selected.hypothesis)}</p><dl className="order-detail-grid"><div><dt>Routine A</dt><dd>{String(selected.a)}</dd></div><div><dt>Routine B</dt><dd>{String(selected.b)}</dd></div><div><dt>Primary outcome</dt><dd>{String(selected.outcome).replaceAll("_", " ")}</dd></div><div><dt>Design and duration</dt><dd>{selectedMethodology.designType ? `${String(selectedMethodology.designType).replaceAll("_", " ")} · ${String(selectedMethodology.durationDays)} days` : "Methodology not supplied"}</dd></div><div className="wide"><dt>Data requirement</dt><dd>{String(selectedRequirements.description ?? "The required baseline contract is not available.")}</dd></div><div className="wide"><dt>Do not start when</dt><dd>{Array.isArray(selectedEligibility.exclusions) ? selectedEligibility.exclusions.join("; ") : "Experiment-specific exclusions are not available."}</dd></div></dl></div><div className="validation-steps"><span className={contextReady ? "done" : ""}><i>1</i><strong>Essential context</strong><small>{contextReady ? "Complete" : "Complete intake"}</small></span><span className={measurementReady ? "done" : ""}><i>2</i><strong>Outcome source</strong><small>{measurementReady ? "Detected" : "Required data not detected"}</small></span><span className={appData?.responseState?.priorityAssessment ? "done" : ""}><i>3</i><strong>Priority ranking</strong><small>{appData?.responseState?.priorityAssessment ? "Calculated" : "Calculate above"}</small></span><span className={safetyReady ? "done" : ""}><i>4</i><strong>Safety decision</strong><small>{safetyReady ? "Eligible for wellness experiment" : String(safetyDecision?.status ?? "Not assessed").replaceAll("_", " ")}</small></span></div><label className="consent-toggle"><input type="checkbox" checked={acknowledged} onChange={(event) => setAcknowledged(event.target.checked)} /><span/><strong>I reviewed the instructions and exclusions and will stop if I feel unwell.</strong></label><div className="intake-actions"><button className="quiet-button" type="button" onClick={() => { setReviewCode(""); setAcknowledged(false); }}>Choose another</button><button className="primary-button" type="button" disabled={!measurementReady || !contextReady || !safetyReady || !acknowledged} onClick={() => void start(String(selected.code))}>Start this experiment →</button></div><p><small>The API rechecks the intervention-specific safety decision and historical data before creating the response cycle. Urgent symptoms or critical results belong in medical care, not a wellness experiment.</small></p></section> : null}
+      {selected && !active ? <section className="paper-card validation-panel" aria-labelledby="experiment-review-title"><div><span className="card-kicker">PRE-START REVIEW</span><h2 id="experiment-review-title">{String(selected.title)}</h2><p>{String(selected.hypothesis)}</p><dl className="order-detail-grid"><div><dt>Your usual routine</dt><dd>{String(selected.a)}</dd></div><div><dt>The focused change</dt><dd>{String(selected.b)}</dd></div><div><dt>What your Twin watches</dt><dd>{String(selected.outcome).replaceAll("_", " ")}</dd></div><div><dt>Method and duration</dt><dd>{selectedMethodology.designType ? `${String(selectedMethodology.designType).replaceAll("_", " ")} · ${String(selectedMethodology.durationDays)} days` : "Methodology not supplied"}</dd></div><div className="wide"><dt>Data needed</dt><dd>{String(selectedRequirements.description ?? "The required baseline contract is not available.")}</dd></div><div className="wide"><dt>Do not start when</dt><dd>{Array.isArray(selectedEligibility.exclusions) ? selectedEligibility.exclusions.join("; ") : "Response-test exclusions are not available."}</dd></div></dl></div><div className="validation-steps"><span className={contextReady ? "done" : ""}><i>1</i><strong>Essential context</strong><small>{contextReady ? "Complete" : "Complete intake"}</small></span><span className={measurementReady ? "done" : ""}><i>2</i><strong>Outcome source</strong><small>{measurementReady ? "Detected" : "Required data not detected"}</small></span><span className={appData?.responseState?.priorityAssessment ? "done" : ""}><i>3</i><strong>Best starting point</strong><small>{appData?.responseState?.priorityAssessment ? "Calculated" : "Calculate above"}</small></span><span className={safetyReady ? "done" : ""}><i>4</i><strong>Safety decision</strong><small>{safetyReady ? "Eligible for a wellness response test" : String(safetyDecision?.status ?? "Not assessed").replaceAll("_", " ")}</small></span></div><label className="consent-toggle"><input type="checkbox" checked={acknowledged} onChange={(event) => setAcknowledged(event.target.checked)} /><span/><strong>I reviewed the instructions and exclusions and will stop if I feel unwell.</strong></label><div className="intake-actions"><button className="quiet-button" type="button" onClick={() => { setReviewCode(""); setAcknowledged(false); }}>Choose another</button><button className="primary-button" type="button" disabled={!measurementReady || !contextReady || !safetyReady || !acknowledged} onClick={() => void start(String(selected.code))}>Start this response test →</button></div><p><small>The app rechecks the safety decision and historical data before creating the response cycle. Urgent symptoms or critical results belong in medical care, not a wellness response test.</small></p></section> : null}
       {!active ? <section className="template-grid">
         {(data?.templates ?? []).map((template) => (
           <article
@@ -419,16 +419,16 @@ export function ExperimentsExperience() {
               disabled={Boolean(active)}
               onClick={() => { setReviewCode(String(template.code)); setAcknowledged(false); }}
             >
-              {active ? "One experiment active" : reviewCode === String(template.code) ? "Selected for review" : "Review this experiment →"}
+              {active ? "One response test active" : reviewCode === String(template.code) ? "Selected for review" : "Review this response test →"}
             </button>
           </article>
         ))}
-      </section> : <section className="paper-card active-template-lock"><span className="card-kicker">ONE QUESTION AT A TIME</span><h2>Other experiments will unlock after this cycle.</h2><p>Changing the question mid-cycle would make the result harder to interpret. Finish, pause, or stop the active experiment first.</p></section>}
+      </section> : <section className="paper-card active-template-lock"><span className="card-kicker">ONE QUESTION AT A TIME</span><h2>Other response tests will unlock after this cycle.</h2><p>Changing the question mid-cycle would make the result harder to interpret. Finish, pause, or stop the current test first.</p></section>}
       <section className="paper-card experiment-history">
         <div className="section-head compact">
           <div>
-            <span className="card-kicker">EXPERIMENT ARCHIVE</span>
-            <h2>What your body taught us</h2>
+            <span className="card-kicker">RESPONSE-TEST ARCHIVE</span>
+            <h2>Earlier questions and what they taught us</h2>
           </div>
         </div>
         {(data?.experiments ?? []).filter((item) => item.status !== "active")

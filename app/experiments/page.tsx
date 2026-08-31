@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { MemberShell, PageHeader } from "@/components/member-shell";
 import { ExperimentsExperience } from "@/components/phase3-experiences";
-export const metadata:Metadata={title:"Experiment Options — Antiaging Labs",description:"Review measurable self-experiments and your current active intervention.",openGraph:{title:"Experiment Options — Antiaging Labs",description:"Review one careful, measurable change at a time.",images:[]},twitter:{title:"Experiment Options — Antiaging Labs",description:"Review one careful, measurable change at a time.",images:[]}};
-export default function ExperimentsPage(){return <MemberShell><PageHeader eyebrow="EXPERIMENT OPTIONS" title="One question at a time." description="Review eligible options; only one experiment can be active at once."/><ExperimentsExperience/></MemberShell>}
+import { DataGate } from "@/components/ui/data-gate";
+export const metadata:Metadata={title:"Response Test Options — Antiaging Labs",description:"Review careful, measurable ways to learn what works for you.",openGraph:{title:"Response Test Options — Antiaging Labs",description:"Review one careful, measurable change at a time.",images:[]},twitter:{title:"Response Test Options — Antiaging Labs",description:"Review one careful, measurable change at a time.",images:[]}};
+export default function ExperimentsPage(){return <MemberShell><PageHeader eyebrow="RESPONSE TEST OPTIONS" title="One useful question at a time." description="Review eligible options; only one focused response test can be active at once."/><DataGate title="Loading response test options…"><ExperimentsExperience/></DataGate></MemberShell>}

@@ -22,18 +22,18 @@ export async function generateMetadata(): Promise<Metadata> {
   const image = `${protocol}://${host}/og-response-twin.png`;
 
   return {
-    title: "Antiaging Labs — Your Personal Response Twin",
-    description: "A DNA-informed health Twin that learns which measurable changes work for you.",
+    title: "Antiaging Labs — Learn What Works for Your Body",
+    description: "Bloodwork, DNA and wearable data combined into a personal plan that measures your response and learns what works for you.",
     icons: { icon: "/favicon.svg", shortcut: "/favicon.svg" },
     openGraph: {
-      title: "Antiaging Labs — Your Personal Response Twin",
-      description: "Connect inherited context, biomarkers and daily signals to learn what actually works for you.",
+      title: "Antiaging Labs — Learn What Works for Your Body",
+      description: "Build your plan, measure your response and learn what actually works for your body.",
       images: [{ url: image, width: 1730, height: 909, alt: "Antiaging Labs member experience" }],
     },
     twitter: {
       card: "summary_large_image",
-      title: "Antiaging Labs — Your Personal Response Twin",
-      description: "Connect inherited context, biomarkers and daily signals to learn what actually works for you.",
+      title: "Antiaging Labs — Learn What Works for Your Body",
+      description: "Build your plan, measure your response and learn what actually works for your body.",
       images: [image],
     },
   };
