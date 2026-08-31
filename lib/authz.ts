@@ -1,11 +1,8 @@
 import { getDatabase } from "./database";
 import { getMemberIdentity, type MemberIdentity } from "./member";
-import { ensureMemberSeed } from "./seed";
 
 export async function requireIdentity(): Promise<MemberIdentity> {
-  const identity = await getMemberIdentity();
-  await ensureMemberSeed(identity);
-  return identity;
+  return getMemberIdentity();
 }
 
 export async function requireRole(allowed: string[]): Promise<MemberIdentity> {

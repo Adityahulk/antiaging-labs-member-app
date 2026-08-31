@@ -52,9 +52,14 @@ export async function ensureMemberSeed(identity: MemberIdentity): Promise<void> 
   const seedDemo = runtimeConfig().SEED_DEMO_DATA === "true" || identity.id === "demo-member-arjun";
   const existing = await database.prepare("SELECT id FROM members WHERE id = ?").bind(identity.id).first();
   if (existing) {
-    await database.prepare("UPDATE members SET email = ?, full_name = ?, updated_at = ? WHERE id = ?").bind(identity.email, identity.fullName, now, identity.id).run();
-    await ensurePhaseOneSeed(database, identity, now, seedDemo);
-    await ensurePhaseThreeSeed(database, identity, now);
+    // Seed data is provisioning work, not request-time work. Existing members
+    // previously ran multiple writes and catalog/model upserts on every page
+    // navigation and API call.
+    const role = await database.prepare("SELECT 1 AS present FROM member_roles WHERE member_id=? LIMIT 1").bind(identity.id).first<{ present: number }>();
+    if (!role) {
+      await ensurePhaseOneSeed(database, identity, now, seedDemo);
+      await ensurePhaseThreeSeed(database, identity, now);
+    }
     return;
   }
 

@@ -174,13 +174,16 @@ export async function getDatabase(): Promise<D1Database> {
   const database = env.DB;
   if (!database) throw new Error("Database binding DB is unavailable");
   if (!initialized) {
-    // Cloudflare D1 limits the number of statements accepted in one batch. The
-    // schema is intentionally broad, so initialize it in bounded chunks on a
-    // fresh database instead of failing the first real sign-up request.
-    for (let offset = 0; offset < schemaStatements.length; offset += 50) {
-      await database.batch(schemaStatements.slice(offset, offset + 50).map((statement) => database.prepare(statement)));
+    if (env.APP_ENV === "production") {
+      // Production schema is applied from packaged migrations at deploy time.
+      // Running 165 DDL statements on every fresh Worker isolate made normal
+      // navigation and button actions wait on unnecessary database work.
+      await database.prepare("SELECT 1 FROM members LIMIT 1").first();
+    } else {
+      for (let offset = 0; offset < schemaStatements.length; offset += 50) {
+        await database.batch(schemaStatements.slice(offset, offset + 50).map((statement) => database.prepare(statement)));
+      }
     }
-    await database.prepare("PRAGMA optimize").run();
     initialized = true;
   }
   return database;
