@@ -3,7 +3,10 @@ import { getDatabase, id, nowIso } from "./database";
 
 export const APP_SESSION_COOKIE = "antiaging_session";
 const SESSION_DAYS = 30;
-const PBKDF2_ITERATIONS = 120_000;
+// WebCrypto work is counted against the Worker execution budget. This keeps
+// password derivation robust while allowing first sign-up to complete reliably
+// on the production Worker; rate limiting is still required before broad launch.
+const PBKDF2_ITERATIONS = 60_000;
 
 export type AppAuthIdentity = { id: string; email: string; fullName: string };
 
@@ -27,8 +30,11 @@ function constantTimeEqual(left: Uint8Array, right: Uint8Array) {
 }
 
 async function derivePassword(password: string, salt: Uint8Array) {
-  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(password), "PBKDF2", false, ["deriveBits"]);
-  const bits = await crypto.subtle.deriveBits({ name: "PBKDF2", salt: salt as unknown as BufferSource, iterations: PBKDF2_ITERATIONS, hash: "SHA-256" }, key, 256);
+  const passwordBytes = new TextEncoder().encode(password);
+  const passwordBuffer = new Uint8Array(passwordBytes).buffer;
+  const saltBuffer = new Uint8Array(salt).buffer;
+  const key = await crypto.subtle.importKey("raw", passwordBuffer, "PBKDF2", false, ["deriveBits"]);
+  const bits = await crypto.subtle.deriveBits({ name: "PBKDF2", salt: saltBuffer, iterations: PBKDF2_ITERATIONS, hash: "SHA-256" }, key, 256);
   return new Uint8Array(bits);
 }
 
