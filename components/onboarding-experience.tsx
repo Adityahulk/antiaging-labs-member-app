@@ -6,8 +6,10 @@ import { IntakeExperience } from "./workflow-experiences";
 export function OnboardingExperience() {
   const { data } = useAppData();
   const hasWearable = data?.wearableConnections.some((item) => item.status === "active") ?? false;
-  const hasLabs = data?.observations.some((item) => item.source === "lab" || item.sourceType === "lab") ?? false;
+  const hasLabs = data?.observations.some((item) => !String(item.source ?? "").match(/Oura|WHOOP|Apple|Garmin|wearable/i)) ?? false;
+  const dnaSource = data?.sources.find((item) => String(item.category).toLowerCase() === "genetics");
   const hasDna = Boolean(data?.genomics.artifacts.length);
+  const dnaStatus = hasDna ? "Added" : dnaSource?.status === "kit_at_home" ? "Kit at home · sample pending" : dnaSource?.status === "not_opted" ? "Not selected" : "Can be added later";
 
   return (
     <>
@@ -21,7 +23,7 @@ export function OnboardingExperience() {
           <span className={data?.intake.answered ? "done" : ""}><i>1</i><strong>Context</strong><small>{data?.intake.answered ? `${data.intake.answered} saved` : "Start here"}</small></span>
           <span className={hasWearable ? "done" : ""}><i>2</i><strong>Wearable</strong><small>{hasWearable ? "Connected" : "Can be added next"}</small></span>
           <span className={hasLabs ? "done" : ""}><i>3</i><strong>Biomarkers</strong><small>{hasLabs ? "Available" : "Optional initially"}</small></span>
-          <span className={hasDna ? "done" : ""}><i>4</i><strong>DNA</strong><small>{hasDna ? "Added" : "Central, not blocking"}</small></span>
+          <span className={hasDna || dnaSource?.status === "not_opted" ? "done" : ""}><i>4</i><strong>DNA</strong><small>{dnaStatus}</small></span>
         </div>
       </section>
       <IntakeExperience />

@@ -16,7 +16,10 @@ export async function PUT(request: Request) {
   const body = await request.json() as { questionCode?: string; module?: string; answer?: unknown };
   if (!body.questionCode || !body.module || body.answer === undefined) return Response.json({ error: "questionCode, module and answer are required" }, { status: 400 });
   const db = await getDatabase();
-  await db.prepare("INSERT INTO intake_answers (member_id, question_code, module, answer_json, updated_at) VALUES (?, ?, ?, ?, ?) ON CONFLICT(member_id, question_code) DO UPDATE SET module = excluded.module, answer_json = excluded.answer_json, updated_at = excluded.updated_at")
-    .bind(identity.id, body.questionCode, body.module, JSON.stringify(body.answer), nowIso()).run();
+  const now = nowIso();
+  const statements = [db.prepare("INSERT INTO intake_answers (member_id, question_code, module, answer_json, updated_at) VALUES (?, ?, ?, ?, ?) ON CONFLICT(member_id, question_code) DO UPDATE SET module = excluded.module, answer_json = excluded.answer_json, updated_at = excluded.updated_at")
+    .bind(identity.id, body.questionCode, body.module, JSON.stringify(body.answer), now)];
+  if (body.questionCode === "primary_goal") statements.push(db.prepare("UPDATE members SET primary_goal=?,updated_at=? WHERE id=?").bind(typeof body.answer === "string" ? body.answer : JSON.stringify(body.answer), now, identity.id));
+  await db.batch(statements);
   return Response.json({ saved: true });
 }

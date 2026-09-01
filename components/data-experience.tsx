@@ -7,6 +7,9 @@ import { CompanionConnections } from "./phase3-experiences";
 export function DataExperience() {
   const { data } = useAppData();
   const artifacts = data?.genomics?.artifacts ?? [];
+  const dnaSource = data?.sources.find((item) => String(item.category).toLowerCase() === "genetics");
+  const dnaState = artifacts.length ? "Added" : dnaSource?.status === "kit_at_home" ? "Kit at home" : dnaSource?.status === "not_opted" ? "Not selected" : "Not added";
+  const dnaDetail = artifacts.length ? `${String(artifacts[0].genomeBuild)} · ${data?.genomics.interpretations.length ?? 0} supported findings` : dnaSource?.status === "kit_at_home" ? "Complete and return the at-home sample" : dnaSource?.status === "not_opted" ? "Optional and not required for your plan" : "Raw array or VCF";
   const sources = useMemo(() => {
     const base = (data?.sources ?? []).map((item) => ({
       id: String(item.id),
@@ -42,7 +45,7 @@ export function DataExperience() {
         <div className="data-entry-paths">
           <a href="#wearables"><span>01</span><strong>Wearable history</strong><small>How your body changes day to day</small><i>{data?.wearableConnections.some((item)=>item.status==="active")?"Connected":"Connect"} →</i></a>
           <a href="#uploads"><span>02</span><strong>Existing labs</strong><small>Your current internal state</small><i>{data?.observations.length?"Available":"Upload"} →</i></a>
-          <a href="#uploads" className="genome-path"><span>03</span><strong>DNA context</strong><small>Inherited hypotheses to test—not destiny</small><i>{artifacts.length?"Added":"Upload or add later"} →</i></a>
+          <a href="#uploads" className="genome-path"><span>03</span><strong>DNA context</strong><small>Inherited hypotheses to test—not destiny</small><i>{dnaState} →</i></a>
         </div>
       </section>
       <nav aria-label="Related records" className="record-shortcuts">
@@ -69,16 +72,8 @@ export function DataExperience() {
         </article>
         <article className="paper-card data-summary">
           <span>GENOMIC FOUNDATION</span>
-          <strong>
-            {artifacts.length
-              ? String(artifacts[0].status).replaceAll("_", " ")
-              : "Not added"}
-          </strong>
-          <p>
-            {artifacts.length
-              ? `${String(artifacts[0].genomeBuild)} · ${data?.genomics.interpretations.length ?? 0} supported findings`
-              : "Raw array or VCF"}
-          </p>
+          <strong>{artifacts.length ? String(artifacts[0].status).replaceAll("_", " ") : dnaState}</strong>
+          <p>{dnaDetail}</p>
           <small>
             <a href="/genetics">Open genetics →</a>
           </small>

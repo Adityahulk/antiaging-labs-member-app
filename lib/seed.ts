@@ -46,6 +46,24 @@ const actions = [
   ["sleep", 3, "13:00", "Earlier caffeine cutoff", "No caffeine after 1 pm on assigned intervention days", "Test a sleep-duration response with wearable data", "28-day randomized crossover", 0, 1],
 ] as const;
 
+const productionJourney = [
+  ["account", "Account created", "Your secure member profile", "complete", 1],
+  ["intake", "Complete your health intake", "Tell us your goals, history, routines, and constraints", "current", 2],
+  ["tests", "Book your tests", "Choose biomarkers, genetics, or both", "future", 3],
+  ["wearables", "Connect your wearable", "Add Oura, WHOOP, Apple Health, or an export", "future", 4],
+  ["collection", "Collection or kit", "Your concierge team will add booking and tracking details", "future", 5],
+  ["analysis", "Analysis", "Verified data is integrated into your Biological Twin", "future", 6],
+  ["protocol", "Experiment ready", "One safe, measurable change is proposed here", "future", 7],
+  ["retest", "Review response", "Decide to keep, change, stop, or repeat", "future", 8],
+] as const;
+
+async function ensureProductionJourney(database: D1Database, memberId: string, now: string) {
+  const statements = productionJourney.map(([stepCode, title, detail, state, sortOrder]) =>
+    database.prepare("INSERT OR IGNORE INTO journey_steps (member_id, step_code, title, detail, state, sort_order, due_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, NULL, ?)")
+      .bind(memberId, stepCode, title, detail, state, sortOrder, now));
+  await database.batch(statements);
+}
+
 export async function ensureMemberSeed(identity: MemberIdentity): Promise<void> {
   const database = await getDatabase();
   const now = nowIso();
@@ -60,20 +78,11 @@ export async function ensureMemberSeed(identity: MemberIdentity): Promise<void> 
       await ensurePhaseOneSeed(database, identity, now, seedDemo);
       await ensurePhaseThreeSeed(database, identity, now);
     }
+    if (!seedDemo) await ensureProductionJourney(database, identity.id, now);
     return;
   }
 
   if (!seedDemo) {
-    const productionJourney = [
-      ["account", "Account created", "Your secure member profile", "complete", 1],
-      ["intake", "Complete your health intake", "Tell us your goals, history, routines, and constraints", "current", 2],
-      ["tests", "Book your tests", "Choose biomarkers, genetics, or both", "future", 3],
-      ["wearables", "Connect your wearable", "Add Oura, WHOOP, Apple Health, or an export", "future", 4],
-      ["collection", "Collection or kit", "Your concierge team will add booking and tracking details", "future", 5],
-      ["analysis", "Analysis", "Verified data is integrated into your Biological Twin", "future", 6],
-      ["protocol", "Experiment ready", "One safe, measurable change is proposed here", "future", 7],
-      ["retest", "Review response", "Decide to keep, change, stop, or repeat", "future", 8],
-    ] as const;
     const statements: D1PreparedStatement[] = [
       database.prepare("INSERT INTO members (id, email, full_name, primary_goal, created_at, updated_at) VALUES (?, ?, ?, '', ?, ?)").bind(identity.id, identity.email, identity.fullName, now, now),
     ];
