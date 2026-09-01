@@ -21,9 +21,10 @@ const domainFor = (category = "", code = "") => {
 };
 const sourceDate = manifest.blood_draw_date;
 const effectiveAt = `${sourceDate}T08:00:00.000Z`;
+const canonicalCode = (code) => ({ glucose_fasting: "fasting_glucose", insulin_fasting: "fasting_insulin", apo_b: "apob" }[code] ?? code);
 const observations = biomarkers.markers.map((marker) => ({
-  conceptCode: marker.code,
-  domain: domainFor(marker.category, marker.code),
+  conceptCode: canonicalCode(marker.code),
+  domain: domainFor(marker.category, canonicalCode(marker.code)),
   valueNumber: typeof marker.value === "number" ? marker.value : null,
   valueText: typeof marker.value === "number" ? null : String(marker.value ?? marker.raw_value ?? ""),
   unit: marker.unit ?? marker.raw_unit ?? null,

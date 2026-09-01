@@ -23,6 +23,7 @@ export async function POST(request: Request) {
     database.prepare("UPDATE members SET full_name=?,primary_goal=?,updated_at=? WHERE id=?").bind(fullName, clean(bundle.primaryGoal), now, member.id),
     database.prepare("UPDATE auth_credentials SET password_hash=?,password_salt=?,updated_at=? WHERE member_id=?").bind(password.hash, password.salt, now, member.id),
     database.prepare("DELETE FROM auth_sessions WHERE member_id=?").bind(member.id),
+    database.prepare("DELETE FROM observations WHERE member_id=? AND source='Tata 1mg · reviewed pipeline report'").bind(member.id),
     database.prepare("INSERT OR IGNORE INTO member_roles (member_id,role,created_at) VALUES (?,'member',?)").bind(member.id, now),
     database.prepare("INSERT INTO beta_access (member_id,status,requested_at,approved_at,note,updated_at) VALUES (?,'approved',?,?,?,?) ON CONFLICT(member_id) DO UPDATE SET status='approved',approved_at=excluded.approved_at,note=excluded.note,updated_at=excluded.updated_at").bind(member.id, now, now, "Founding cohort concierge onboarding", now),
   ];
