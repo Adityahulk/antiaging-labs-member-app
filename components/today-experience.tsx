@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useAppData } from "./app-provider";
+import { ButtonLink } from "./ui/button";
 
 type Row = Record<string, unknown>;
 
@@ -23,12 +24,18 @@ function firstUnfinishedPeriod(experiment: Row | undefined) {
   return periods.find((period) => !period.completed);
 }
 
+function greetingFor(name: string, hour: number) {
+  const hello = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+  return `${hello}, ${name}.`;
+}
+
 export function TodayExperience() {
   const { data, loading, refresh } = useAppData();
   const [note, setNote] = useState("");
   const [checkingIn, setCheckingIn] = useState(false);
   const [checkInNotice, setCheckInNotice] = useState("");
   const firstName = data?.member?.fullName?.trim().split(/\s+/)[0] || "there";
+  const greeting = greetingFor(firstName, new Date().getHours());
   const activeExperiment = data?.phase3.experiments.find((item) => item.status === "active");
   const activeIntervention = data?.responseState?.interventions.find((item) => item.status === "active");
   const nextPeriod = firstUnfinishedPeriod(activeExperiment);
@@ -38,13 +45,15 @@ export function TodayExperience() {
   const intakeReady = Boolean(data && data.intake.answered >= Math.min(10, data.intake.total));
   const layers = sourceState(data);
   const hasSignals = layers.some((item) => item.ready);
+  const returning = Boolean(data?.twin) || Boolean(activeIntervention || activeExperiment) || Boolean(latestOutcome);
+  const showFoundation = !returning || layers.some((item) => !item.ready);
 
   let next = { kicker: "START HERE", title: "Tell us what matters to you", detail: "Complete the essential context so your Twin can distinguish what you feel from what your data suggests.", href: "/intake", cta: "Complete essential intake" };
   if (intakeReady && !hasSignals) next = { kicker: "ADD A SIGNAL", title: "Bring your existing health data", detail: "Connect a wearable, upload a recent lab result, or add DNA. You can start with any one of them.", href: "/data", cta: "Connect or import data" };
   else if (intakeReady && hasSignals && !data?.twin) next = { kicker: "BASELINE", title: "Build your first evidence snapshot", detail: "We will check coverage, freshness and missing information before recommending any change.", href: "/twin", cta: "Build my Twin" };
-  else if (activeIntervention || activeExperiment) next = { kicker: "TODAY'S FOCUSED ACTION", title: nextPeriod?.arm === "A" ? `Keep it usual: ${String(nextPeriod.instruction ?? "follow your normal routine")}` : String(activeIntervention?.exactInstruction ?? nextPeriod?.instruction ?? activeExperiment?.title ?? "Continue your current focus"), detail: nextPeriod?.arm === "A" ? "Your usual routine gives your Twin a clean comparison. Do not add the focused change today." : "Follow today’s focused change. Your connected data records the outcome; add a note only if something unusual could affect it.", href: "/plan", cta: "Open my current focus" };
-  else if (latestOutcome) next = { kicker: "NEW PERSONAL LEARNING", title: "See what changed—and what it means for your plan", detail: "Compare your baseline with the focused change, see how certain the result is, and decide whether to keep, adjust or stop.", href: "/learnings", cta: "Review what we learned" };
-  else if (data?.twin) next = { kicker: "READY TO LEARN", title: data.responseState?.priorityCandidates[0] ? String(data.responseState.priorityCandidates[0].title) : "Find the clearest thing to learn next", detail: "Your Twin ranks focused response tests from your goal, current state, inherited context and the outcomes you can measure reliably.", href: "/plan", cta: data.responseState?.priorityCandidates[0] ? "Review my recommended focus" : "Find my starting point" };
+  else if (activeIntervention || activeExperiment) next = { kicker: "TODAY", title: nextPeriod?.arm === "A" ? `Keep it usual: ${String(nextPeriod.instruction ?? "follow your normal routine")}` : String(activeIntervention?.exactInstruction ?? nextPeriod?.instruction ?? activeExperiment?.title ?? "Continue your current focus"), detail: nextPeriod?.arm === "A" ? "Your usual routine gives your Twin a clean comparison. Do not add the focused change today." : "Follow today’s focused change. Your connected data records the outcome; add a note only if something unusual could affect it.", href: "/plan", cta: "Open today’s focus" };
+  else if (latestOutcome) next = { kicker: "NEW LEARNING", title: "See what changed—and what it means for your plan", detail: "Compare your baseline with the focused change, see how certain the result is, and decide whether to keep, adjust or stop.", href: "/learnings", cta: "Review what we learned" };
+  else if (data?.twin) next = { kicker: "READY TO LEARN", title: data.responseState?.priorityCandidates[0] ? String(data.responseState.priorityCandidates[0].title) : "Find the clearest thing to learn next", detail: "Your Twin ranks focused response tests from your goal, current state, inherited context and the outcomes you can measure reliably.", href: "/plan", cta: data.responseState?.priorityCandidates[0] ? "Review recommended focus" : "Find my starting point" };
 
   if (loading) return <section className="response-loading paper-card"><span className="live-dot"/><strong>Connecting your private health record…</strong></section>;
   const twinSummary = String(data?.twin?.summary ?? "").toLowerCase();
@@ -68,17 +77,17 @@ export function TodayExperience() {
   };
 
   return <>
-    <header className="response-topbar">
-      <div><p className="eyebrow">YOUR PERSONAL RESPONSE TWIN</p><h1>Good morning, {firstName}.</h1><p>Your plan for today, why it matters, and what your Twin is learning from your response.</p></div>
+    <header className={`response-topbar ${returning ? "is-returning" : ""}`}>
+      <div><p className="eyebrow">TODAY</p><h1 suppressHydrationWarning>{greeting}</h1>{returning ? null : <p>Your plan for today, why it matters, and what your Twin is learning from your response.</p>}</div>
     </header>
-    <section className="response-hero">
-      <article className="next-decision-card"><span className="card-kicker">{next.kicker}</span><h2>{next.title}</h2><p>{next.detail}</p>{activeIntervention || activeExperiment ? <div className="today-checkin"><div><span>DAY {Math.min(completedPeriods + 1, periods.length || 1)} OF {periods.length || "CURRENT CYCLE"}</span><strong>{nextPeriod?.arm === "A" ? "Control routine" : "Intervention routine"}</strong></div><label><span>Anything unusual today? <small>optional</small></span><input value={note} onChange={(event) => setNote(event.target.value)} placeholder="Travel, illness, alcohol, poor sleep…" /></label><button disabled={checkingIn} type="button" onClick={() => void checkIn()}>{checkingIn ? "Saving…" : "Mark today done"}</button>{checkInNotice ? <p role="status">{checkInNotice}</p> : null}<Link href={next.href}>{next.cta} →</Link></div> : <Link className="primary-button" href={next.href}><span>{next.cta}</span><span>→</span></Link>}</article>
-      <article className="learning-loop-card"><span className="card-kicker">WHAT YOUR TWIN IS LEARNING</span><div className="learning-loop"><span><i>1</i><strong>Measure</strong><small>Your baseline</small></span><span><i>2</i><strong>Focus</strong><small>One change</small></span><span><i>3</i><strong>Compare</strong><small>Your response</small></span><span><i>4</i><strong>Remember</strong><small>What works</small></span></div><p>Bloodwork shows your current state. DNA adds inherited context. Wearables and retests show how you respond.</p>{activeIntervention || activeExperiment ? <Link className="learning-link" href="/learnings">See my response memory →</Link> : null}</article>
+    <section className={`response-hero ${returning ? "is-returning" : ""}`}>
+      <article className="next-decision-card"><span className="card-kicker">{next.kicker}</span><h2>{next.title}</h2><p>{next.detail}</p>{activeIntervention || activeExperiment ? <div className="today-checkin"><div><span>DAY {Math.min(completedPeriods + 1, periods.length || 1)} OF {periods.length || "CURRENT CYCLE"}</span><strong>{nextPeriod?.arm === "A" ? "Usual routine" : "Focused change"}</strong></div><label><span>Anything unusual today? <small>optional</small></span><input value={note} onChange={(event) => setNote(event.target.value)} placeholder="Travel, illness, alcohol, poor sleep…" /></label><button disabled={checkingIn} type="button" onClick={() => void checkIn()}>{checkingIn ? "Saving…" : "Mark today done"}</button>{checkInNotice ? <p role="status">{checkInNotice}</p> : null}<Link href={next.href}>{next.cta} →</Link></div> : <ButtonLink href={next.href}>{next.cta}</ButtonLink>}</article>
+      {returning ? null : <article className="learning-loop-card"><span className="card-kicker">HOW THIS WORKS</span><div className="learning-loop"><span><i>1</i><strong>Measure</strong><small>Your baseline</small></span><span><i>2</i><strong>Focus</strong><small>One change</small></span><span><i>3</i><strong>Compare</strong><small>Your response</small></span><span><i>4</i><strong>Remember</strong><small>What works</small></span></div><p>Bloodwork shows your current state. DNA adds inherited context. Wearables and retests show how you respond.</p></article>}
     </section>
     <section className="response-grid">
-      <article className="paper-card data-foundation-card"><div className="section-head compact"><div><span className="card-kicker">DATA FOUNDATION</span><h2>Your three biological layers</h2></div><Link href="/data">Manage</Link></div><div className="foundation-layers">{layers.map((layer, index) => <div className={layer.ready ? "ready" : "missing"} key={layer.label}><span>{String(index + 1).padStart(2, "0")}</span><div><strong>{layer.label}</strong><small>{layer.detail}</small></div><i>{layer.ready ? "Ready" : "Add"}</i></div>)}</div></article>
-      <article className="paper-card evidence-now-card"><span className="card-kicker">WHAT APPEARS IMPORTANT NOW</span>{topDomain ? <><div className="evidence-state"><span>{String(topDomain.stateLabel ?? "Data available")}</span><strong>{confidence ? `${confidence}% signal strength` : "Strength pending"}</strong></div><h2>{String(topDomain.label ?? "Current state")}</h2><p>{String(data?.twin?.summary ?? "Your evidence snapshot is ready to inspect.")}</p><div className="evidence-now-meta"><span><small>KEY SIGNAL</small><strong>{String(topDomain.keyMetric ?? "—")} {String(topDomain.keyValue ?? "")}</strong></span><span><small>LAST UPDATED</small><strong>{String(topDomain.freshness ?? "Unknown")}</strong></span></div><Link href="/twin">See what is measured, possible and unknown →</Link></> : <><h2>No state has been inferred yet.</h2><p>We will not invent a score from missing information. Add one reliable source to begin.</p><Link href="/data">Add a data source →</Link></>}</article>
+      {showFoundation ? <article className="paper-card data-foundation-card"><div className="section-head compact"><div><span className="card-kicker">YOUR DATA</span><h2>Three layers that inform your plan</h2></div><Link href="/data">Manage</Link></div><div className="foundation-layers">{layers.map((layer, index) => <div className={layer.ready ? "ready" : "missing"} key={layer.label}><span>{String(index + 1).padStart(2, "0")}</span><div><strong>{layer.label}</strong><small>{layer.detail}</small></div><i>{layer.ready ? "Ready" : "Add"}</i></div>)}</div></article> : null}
+      <article className="paper-card evidence-now-card"><span className="card-kicker">WHAT STANDS OUT</span>{topDomain ? <><div className="evidence-state"><span>{String(topDomain.stateLabel ?? "Data available")}</span><strong>{confidence ? `${confidence}% signal strength` : "Strength pending"}</strong></div><h2>{String(topDomain.label ?? "Current state")}</h2><p>{String(data?.twin?.summary ?? "Your evidence snapshot is ready to inspect.")}</p><div className="evidence-now-meta"><span><small>KEY SIGNAL</small><strong>{String(topDomain.keyMetric ?? "—")} {String(topDomain.keyValue ?? "")}</strong></span><span><small>LAST UPDATED</small><strong>{String(topDomain.freshness ?? "Unknown")}</strong></span></div><Link href="/twin">See measured, possible and unknown →</Link></> : <><h2>No state has been inferred yet.</h2><p>We will not invent a score from missing information. Add one reliable source to begin.</p><Link href="/data">Add a data source →</Link></>}</article>
     </section>
-    <section className="principles-strip"><span><strong>Measured</strong><small>Source and date preserved</small></span><span><strong>Inferred</strong><small>Confidence shown</small></span><span><strong>Unknown</strong><small>Missing data named</small></span><span><strong>Learned</strong><small>Response linked to one change</small></span></section>
+    {returning ? null : <section className="principles-strip"><span><strong>Measured</strong><small>Source and date preserved</small></span><span><strong>Inferred</strong><small>Confidence shown</small></span><span><strong>Unknown</strong><small>Missing data named</small></span><span><strong>Learned</strong><small>Response linked to one change</small></span></section>}
   </>;
 }

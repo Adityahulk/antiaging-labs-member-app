@@ -44,9 +44,9 @@ export function PlanExperience() {
   return <div className="plan-experience">
     <section className="plan-overview">
       <article className="plan-overview-copy">
-        <span className="card-kicker">YOUR PERSONAL OPERATING PLAN</span>
-        <h2>A complete plan—with one response being learned more closely.</h2>
-        <p>Your foundations guide the everyday work across food, training, recovery and co-factors. Your current focus tests one change carefully enough to learn whether it deserves a permanent place.</p>
+        <span className="card-kicker">YOUR PLAN</span>
+        <h2>Daily foundations, plus one change measured closely.</h2>
+        <p>Keep the stable work across food, training and recovery. The current focus tests one change carefully enough to learn whether it belongs in the plan.</p>
         <div className="plan-overview-stats">
           <span><strong>{actions.length}</strong><small>foundation actions</small></span>
           <span><strong>{completed}/{actions.length || "—"}</strong><small>done today</small></span>
@@ -57,12 +57,12 @@ export function PlanExperience() {
         <span className="card-kicker">CURRENT FOCUS</span>
         <h3>{String(activeTest?.title ?? "Choose the clearest thing to learn next")}</h3>
         <p>{String(activeTest?.hypothesis ?? "Your Twin will rank a focused response test from your goal, current measurements, safety and available outcome data.")}</p>
-        <a href="#current-focus">{activeTest ? "Open this response test" : "Find my starting point"} ↓</a>
+        <a href="#current-focus">{activeTest ? "Open today’s focus" : "Find my starting point"} ↓</a>
       </aside>
     </section>
 
     <section className="foundation-plan paper-card">
-      <div className="section-head compact"><div><span className="card-kicker">YOUR FOUNDATION PLAN</span><h2>The actions that support your whole programme</h2><p>These are your stable foundations. Completing them supports the plan; the focused response test below answers one narrower question.</p></div><span className="eta-chip">v{String(data?.protocol?.version ?? "—")}</span></div>
+      <div className="section-head compact"><div><span className="card-kicker">FOUNDATIONS</span><h2>The actions that support the rest of the plan</h2><p>These stay stable. Completing them supports the programme; the focus below answers one narrower question.</p></div><span className="eta-chip">v{String(data?.protocol?.version ?? "—")}</span></div>
       {grouped.length ? <div className="foundation-domain-grid">{grouped.map(([domain, domainActions]) => <article key={domain}>
         <header><span>{String(domainActions.length).padStart(2, "0")}</span><h3>{domainLabels[domain] ?? "Daily foundations"}</h3></header>
         <div>{domainActions.map((action) => <label aria-label={`Mark ${action.title} complete`} className={action.done ? "complete" : ""} htmlFor={`plan-action-${action.id}`} key={action.id}>
@@ -73,7 +73,7 @@ export function PlanExperience() {
     </section>
 
     <section className="response-test-section" id="current-focus">
-      <div className="response-test-intro"><span className="card-kicker">YOUR CURRENT RESPONSE TEST</span><h2>Let’s find out whether this works for you.</h2><p>One change is measured against your own baseline. The scientific detail stays available, while the default view keeps the action and outcome clear.</p></div>
+      <div className="response-test-intro"><span className="card-kicker">CURRENT FOCUS</span><h2>Does this change work for you?</h2><p>One change is measured against your own baseline. Detail stays available; the default view keeps the action and outcome clear.</p></div>
       <ExperimentWorkspace />
     </section>
   </div>;

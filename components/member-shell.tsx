@@ -1,27 +1,37 @@
 "use client";
 
+import { useEffect, useState, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
-import type { ReactNode } from "react";
 import Link from "next/link";
 import { useAppData } from "./app-provider";
 import { Button } from "./ui/button";
 import { Meter } from "./ui/meter";
 
 const primaryNavigation = [
-  { href: "/", label: "Today", glyph: "01" },
-  { href: "/plan", label: "My Plan", glyph: "02" },
-  { href: "/learnings", label: "Learnings", glyph: "03" },
-  { href: "/twin", label: "My Twin", glyph: "04" },
+  { href: "/", label: "Today", shortLabel: "Today", glyph: "01" },
+  { href: "/plan", label: "My Plan", shortLabel: "Plan", glyph: "02" },
+  { href: "/learnings", label: "Learnings", shortLabel: "Learnings", glyph: "03" },
+  { href: "/twin", label: "My Twin", shortLabel: "Twin", glyph: "04" },
 ];
 
 const libraryNavigation = [
-  { href: "/data", label: "Data sources" },
-  { href: "/genetics", label: "Inherited context" },
+  { href: "/data", label: "Data" },
+  { href: "/genetics", label: "Genetics" },
   { href: "/reports", label: "Reports" },
-  { href: "/journey", label: "Programme timeline" },
-  { href: "/tests", label: "Tests & orders" },
-  { href: "/support", label: "Privacy & support" },
+  { href: "/journey", label: "Timeline" },
+  { href: "/tests", label: "Tests" },
+  { href: "/support", label: "Help" },
 ];
+
+const planAliases = ["/experiment", "/experiments", "/protocol"];
+const learningAliases = ["/results", "/outcomes"];
+
+function isNavActive(pathname: string, href: string) {
+  if (href === "/") return pathname === "/";
+  if (href === "/plan") return pathname === "/plan" || planAliases.includes(pathname) || pathname.startsWith("/experiment");
+  if (href === "/learnings") return pathname === "/learnings" || learningAliases.includes(pathname) || pathname.startsWith("/result");
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
 
 function stageFor(data: ReturnType<typeof useAppData>["data"]) {
   if (!data) return { label: "Loading your state", detail: "Connecting your secure health record", progress: 8 };
@@ -39,14 +49,32 @@ function stageFor(data: ReturnType<typeof useAppData>["data"]) {
 export function MemberShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const { data, error, refresh } = useAppData();
+  const [moreOpen, setMoreOpen] = useState(false);
+  const [menuPath, setMenuPath] = useState(pathname);
+  if (pathname !== menuPath) {
+    setMenuPath(pathname);
+    if (moreOpen) setMoreOpen(false);
+  }
   const name = data?.member?.fullName?.trim() || "Member";
+  const email = data?.member?.email?.trim() || "Signed in";
   const initials = name.split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase();
   const stage = error
     ? { label: "Record unavailable", detail: "We could not reach your health record", progress: 0 }
     : stageFor(data);
+  const moreActive = libraryNavigation.some((item) => isNavActive(pathname, item.href)) || pathname === "/ask" || pathname.startsWith("/admin") || pathname === "/intake";
+
+  useEffect(() => {
+    if (!moreOpen) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMoreOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [moreOpen]);
 
   return (
     <div className="app-shell response-shell">
+      <a className="skip-link" href="#main-content">Skip to content</a>
       <aside className="sidebar response-sidebar">
         <Link className="brand" href="/" aria-label="Antiaging Labs home">
           <span className="brand-mark">A</span>
@@ -54,24 +82,24 @@ export function MemberShell({ children }: { children: ReactNode }) {
         </Link>
         <nav className="primary-nav response-primary-nav" aria-label="Primary navigation">
           {primaryNavigation.map((item) => {
-            const active = item.href === "/" ? pathname === "/" : pathname === item.href || (item.href === "/plan" && ["/experiment", "/experiments", "/protocol"].includes(pathname)) || (item.href === "/learnings" && ["/results", "/outcomes"].includes(pathname));
+            const active = isNavActive(pathname, item.href);
             return <Link key={item.href} className={`nav-item ${active ? "active" : ""}`} href={item.href}><span>{item.glyph}</span>{item.label}</Link>;
           })}
         </nav>
         <div className="response-stage-card">
-          <span>YOUR CURRENT STAGE</span><strong>{stage.label}</strong><p>{stage.detail}</p>
+          <span>WHERE YOU ARE</span><strong>{stage.label}</strong><p>{stage.detail}</p>
           <Meter value={stage.progress} label={`Programme progress: ${stage.label}`} />
         </div>
         <nav className="library-nav" aria-label="Health record and settings">
           <span>YOUR RECORD</span>
-          {libraryNavigation.map((item) => <Link className={pathname === item.href ? "active" : ""} href={item.href} key={item.href}>{item.label}<i>→</i></Link>)}
-          {data?.roles.includes("admin") ? <Link href="/admin">Operations<i>→</i></Link> : null}
+          {libraryNavigation.map((item) => <Link className={isNavActive(pathname, item.href) ? "active" : ""} href={item.href} key={item.href}>{item.label}<i>→</i></Link>)}
+          {data?.roles.includes("admin") ? <Link className={pathname.startsWith("/admin") ? "active" : ""} href="/admin">Operations<i>→</i></Link> : null}
         </nav>
         <a className="profile-button" href="/auth/logout" title="Sign out">
-          <span className="avatar">{initials}</span><span><strong>{name}</strong><small>Founding member</small></span><span className="more">SIGN OUT</span>
+          <span className="avatar">{initials}</span><span><strong>{name}</strong><small>{email}</small></span><span className="more">SIGN OUT</span>
         </a>
       </aside>
-      <main className="main-content subpage-main response-main">
+      <main className="main-content subpage-main response-main" id="main-content">
         {error ? (
           <div className="shell-failure">
             <div className="record-unavailable paper-card" role="alert">
@@ -83,10 +111,40 @@ export function MemberShell({ children }: { children: ReactNode }) {
           </div>
         ) : children}
       </main>
-      <Link className="floating-guide" href="/ask" aria-label="Ask your data-aware guide"><span>✦</span> Ask your Twin</Link>
+      <Link className="floating-guide" href="/ask" aria-label="Ask your Twin"><span>✦</span> Ask your Twin</Link>
       <nav className="mobile-nav response-mobile-nav" aria-label="Mobile navigation">
-        {primaryNavigation.map((item) => <Link className={(item.href === "/" ? pathname === "/" : pathname.startsWith(item.href) || (item.href === "/plan" && pathname.startsWith("/experiment")) || (item.href === "/learnings" && pathname.startsWith("/result"))) ? "active" : ""} href={item.href} key={item.href}><span>{item.glyph}</span>{item.label}</Link>)}
+        {primaryNavigation.map((item) => (
+          <Link className={isNavActive(pathname, item.href) ? "active" : ""} href={item.href} key={item.href}><span>{item.glyph}</span>{item.shortLabel}</Link>
+        ))}
+        <button
+          aria-controls="mobile-more-sheet"
+          aria-expanded={moreOpen}
+          className={moreOpen || moreActive ? "active" : ""}
+          onClick={() => setMoreOpen((open) => !open)}
+          type="button"
+        >
+          <span aria-hidden="true">···</span>More
+        </button>
       </nav>
+      {moreOpen ? (
+        <div className="mobile-more">
+          <button aria-label="Close menu" className="mobile-more-backdrop" onClick={() => setMoreOpen(false)} type="button" />
+          <div aria-label="More" aria-modal="true" className="mobile-more-sheet" id="mobile-more-sheet" role="dialog">
+            <div className="mobile-more-head">
+              <strong>Your record</strong>
+              <button onClick={() => setMoreOpen(false)} type="button">Close</button>
+            </div>
+            <nav aria-label="Record and settings">
+              <Link className={pathname === "/ask" ? "active" : ""} href="/ask"><span>Ask your Twin</span><i>→</i></Link>
+              {libraryNavigation.map((item) => (
+                <Link className={isNavActive(pathname, item.href) ? "active" : ""} href={item.href} key={item.href}><span>{item.label}</span><i>→</i></Link>
+              ))}
+              {data?.roles.includes("admin") ? <Link className={pathname.startsWith("/admin") ? "active" : ""} href="/admin"><span>Operations</span><i>→</i></Link> : null}
+            </nav>
+            <a className="mobile-more-signout" href="/auth/logout">Sign out · {name}</a>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -38,13 +38,20 @@ export function DataExperience() {
   return (
     <>
       <section className="data-entry-hero">
-        <div><span className="card-kicker">BUILD YOUR EVIDENCE FOUNDATION</span><h1>Start with what you already have.</h1><p>You do not need every data source to begin. Each layer answers a different question, and your Twin stays explicit about what is still unknown.</p></div>
+        <div><span className="card-kicker">START WITH WHAT YOU HAVE</span><h1>Add one reliable source to begin.</h1><p>You do not need every data source. Each layer answers a different question, and missing data stays named as unknown.</p></div>
         <div className="data-entry-paths">
           <a href="#wearables"><span>01</span><strong>Wearable history</strong><small>How your body changes day to day</small><i>{data?.wearableConnections.some((item)=>item.status==="active")?"Connected":"Connect"} →</i></a>
           <a href="#uploads"><span>02</span><strong>Existing labs</strong><small>Your current internal state</small><i>{data?.observations.length?"Available":"Upload"} →</i></a>
           <a href="#uploads" className="genome-path"><span>03</span><strong>DNA context</strong><small>Inherited hypotheses to test—not destiny</small><i>{artifacts.length?"Added":"Upload or add later"} →</i></a>
         </div>
       </section>
+      <nav aria-label="Related records" className="record-shortcuts">
+        <a href="/genetics"><span>Genetics</span><i>→</i></a>
+        <a href="/reports"><span>Reports</span><i>→</i></a>
+        <a href="/journey"><span>Timeline</span><i>→</i></a>
+        <a href="/tests"><span>Tests</span><i>→</i></a>
+        <a href="/intake"><span>Intake</span><i>→</i></a>
+      </nav>
       <section className="data-summary-grid">
         <article className="paper-card data-summary">
           <span>OVERALL COVERAGE</span>

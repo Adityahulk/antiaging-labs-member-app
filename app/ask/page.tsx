@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 export default function AskPage() {
   return (
     <MemberShell>
-      <PageHeader eyebrow="ASK YOUR TWIN" title="Ask about today, your plan, or what we have learned." description="Direct answers grounded in your own data, with the reasoning and remaining uncertainty kept visible." />
+      <PageHeader eyebrow="ASK" title="Ask about today, your plan, or a result." description="Answers stay grounded in your data, with the reasoning kept visible." />
       <ChatExperience />
     </MemberShell>
   );

@@ -30,8 +30,8 @@ export function AuthForm() {
 
   return <div className="auth-form-wrap">
     <div className="auth-tabs" role="tablist" aria-label="Account access">
-      <button type="button" className={mode === "signin" ? "active" : ""} onClick={() => setMode("signin")}>Sign in</button>
-      <button type="button" className={mode === "signup" ? "active" : ""} onClick={() => setMode("signup")}>Create account</button>
+      <button aria-selected={mode === "signin"} className={mode === "signin" ? "active" : ""} onClick={() => setMode("signin")} role="tab" type="button">Sign in</button>
+      <button aria-selected={mode === "signup"} className={mode === "signup" ? "active" : ""} onClick={() => setMode("signup")} role="tab" type="button">Create account</button>
     </div>
     <form className="auth-form" onSubmit={submit}>
       {mode === "signup" ? <label>Full name<input value={fullName} onChange={(event) => setFullName(event.target.value)} autoComplete="name" required /></label> : null}
