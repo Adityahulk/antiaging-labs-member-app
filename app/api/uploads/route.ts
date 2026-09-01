@@ -1,14 +1,12 @@
 import { env } from "cloudflare:workers";
 import { getDatabase, id, nowIso } from "@/lib/database";
 import { getMemberIdentity } from "@/lib/member";
-import { ensureMemberSeed } from "@/lib/seed";
 import { processUpload } from "@/lib/upload-processing";
 
 type UploadEnv = { UPLOADS?: R2Bucket };
 
 export async function GET() {
   const identity = await getMemberIdentity();
-  await ensureMemberSeed(identity);
   const db = await getDatabase();
   const rows = await db.prepare("SELECT id, type, file_name, content_type, size, status, created_at FROM uploads WHERE member_id = ? ORDER BY created_at DESC").bind(identity.id).all();
   return Response.json(rows.results);
@@ -16,7 +14,6 @@ export async function GET() {
 
 export async function POST(request: Request) {
   const identity = await getMemberIdentity();
-  await ensureMemberSeed(identity);
   const form = await request.formData();
   const file = form.get("file");
   const type = String(form.get("type") ?? "document");

@@ -1,6 +1,5 @@
 import { getDatabase, id, nowIso, parseJson } from "@/lib/database";
 import { getMemberIdentity } from "@/lib/member";
-import { ensureMemberSeed } from "@/lib/seed";
 import { hmacHex } from "@/lib/integrations";
 import { aiGatewayStatus, runAI } from "@/lib/ai-gateway";
 import { createSupportTicket } from "@/lib/support";
@@ -28,7 +27,6 @@ function fallbackAnswer(question: string, context: { strategy: string; apob: str
 
 export async function GET() {
   const identity = await getMemberIdentity();
-  await ensureMemberSeed(identity);
   const db = await getDatabase();
   const rows = await db.prepare("SELECT id, role, content, sources_json, created_at FROM chat_messages WHERE member_id = ? AND conversation_id = 'default' ORDER BY created_at").bind(identity.id).all<Record<string, unknown>>();
   return Response.json(rows.results.map((row) => ({ id: row.id, role: row.role, text: row.content, data: parseJson(row.sources_json, []), createdAt: row.created_at })));
@@ -36,7 +34,6 @@ export async function GET() {
 
 export async function POST(request: Request) {
   const identity = await getMemberIdentity();
-  await ensureMemberSeed(identity);
   const body = await request.json() as { message?: string };
   const message = body.message?.trim();
   if (!message || message.length > 2000) return Response.json({ error: "Enter a message up to 2,000 characters" }, { status: 400 });

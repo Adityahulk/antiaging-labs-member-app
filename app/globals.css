@@ -156,6 +156,13 @@ button { color: inherit; }
 .profile-button .more { color: rgba(255,255,255,.4); font-size: 12px; letter-spacing: 2px; }
 
 .auth-screen{min-height:100vh;display:grid;place-items:center;padding:28px;background:radial-gradient(circle at 80% 15%,rgba(157,112,72,.18),transparent 34%),var(--paper)}
+.session-check{min-height:100vh;display:grid;place-content:center;justify-items:center;gap:18px;background:var(--paper);color:var(--ink)}
+.session-spinner{width:30px;height:30px;border:3px solid var(--line);border-top-color:var(--rust);border-radius:50%;animation:session-spin .7s linear infinite}
+@keyframes session-spin{to{transform:rotate(360deg)}}
+.route-loading{position:fixed;z-index:100;inset:0;display:grid;place-content:center;justify-items:center;gap:12px;background:rgba(247,244,237,.82);backdrop-filter:blur(5px);color:var(--muted)}
+.route-loading span{width:34px;height:34px;border:3px solid var(--line);border-top-color:var(--rust);border-radius:50%;animation:session-spin .65s linear infinite}
+.route-loading small{font:700 11px var(--font-geist-mono);letter-spacing:.08em;text-transform:uppercase}
+.report-detail-loading{min-height:180px;display:grid;place-items:center;color:var(--muted);font-size:13px}
 .auth-card{width:min(620px,100%);padding:54px;border:1px solid var(--line);border-radius:var(--radius-xl);background:#fffdf7;box-shadow:0 24px 80px rgba(37,33,28,.12)}
 .auth-mark{display:grid;place-items:center;width:58px;height:58px;margin-bottom:34px;border-radius:50%;background:var(--rust);color:#fff;font-family:var(--font-display);font-size:28px}
 .auth-card h1{max-width:520px;margin:14px 0 18px;font-family:var(--font-display);font-size:clamp(42px,7vw,68px);font-weight:500;line-height:.98}

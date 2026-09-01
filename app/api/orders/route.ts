@@ -1,6 +1,5 @@
 import { getDatabase, id, nowIso, parseJson } from "@/lib/database";
 import { getMemberIdentity } from "@/lib/member";
-import { ensureMemberSeed } from "@/lib/seed";
 
 const catalog = {
   biomarker: { name: "Men's Longevity Biomarker Panel", amountPaise: 499900, vendor: "Concierge lab network" },
@@ -9,7 +8,6 @@ const catalog = {
 
 export async function GET() {
   const identity = await getMemberIdentity();
-  await ensureMemberSeed(identity);
   const db = await getDatabase();
   const rows = await db.prepare("SELECT * FROM orders WHERE member_id = ? ORDER BY updated_at DESC").bind(identity.id).all<Record<string, unknown>>();
   return Response.json(rows.results.map((row) => ({ ...row, metadata_json: parseJson(row.metadata_json, {}) })));
@@ -17,7 +15,6 @@ export async function GET() {
 
 export async function POST(request: Request) {
   const identity = await getMemberIdentity();
-  await ensureMemberSeed(identity);
   const body = await request.json() as { type?: keyof typeof catalog; city?: string; preferredDate?: string };
   if (!body.type || !catalog[body.type]) return Response.json({ error: "Select a valid test" }, { status: 400 });
   const product = catalog[body.type];

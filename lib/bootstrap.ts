@@ -4,7 +4,6 @@ import type { MemberIdentity } from "./member";
 import { integrationHealth } from "./integrations";
 import { intakeQuestions } from "./intake-catalog";
 import { getGenomicsState } from "./genomics";
-import { getCrossModalFindings } from "./cross-modal";
 import { getMemberOutcomes } from "./phase3";
 import { interoperabilityStatus } from "./interoperability";
 import { getResponseState } from "./response-state";
@@ -22,34 +21,30 @@ function decode(row: Row, jsonFields: string[] = []) {
 }
 
 export async function getMemberAppData(identity: MemberIdentity) {
-  await ensureMemberSeed(identity);
+  if (identity.id === "demo-member-arjun") await ensureMemberSeed(identity);
   const db = await getDatabase();
-  const [member, journey, orders, sources, snapshot, reports, protocol, observations, intake, catalog, notifications, adjustment, roles, connections] = await Promise.all([
+  const [member, journey, orders, orderEvents, sources, snapshot, domains, reports, protocol, actions, observations, intake, catalog, notifications, adjustment, roles, connections, crossModalRows] = await Promise.all([
     db.prepare("SELECT * FROM members WHERE id = ?").bind(identity.id).first<Row>(),
     db.prepare("SELECT * FROM journey_steps WHERE member_id = ? ORDER BY sort_order").bind(identity.id).all<Row>(),
     db.prepare("SELECT * FROM orders WHERE member_id = ? ORDER BY updated_at DESC").bind(identity.id).all<Row>(),
+    db.prepare("SELECT id, order_id, status, source, public_message, occurred_at FROM order_events WHERE member_id = ? ORDER BY occurred_at").bind(identity.id).all<Row>(),
     db.prepare("SELECT * FROM data_sources WHERE member_id = ? ORDER BY category, name").bind(identity.id).all<Row>(),
     db.prepare("SELECT * FROM twin_snapshots WHERE member_id = ? ORDER BY version DESC LIMIT 1").bind(identity.id).first<Row>(),
-    db.prepare("SELECT * FROM reports WHERE member_id = ? ORDER BY updated_at DESC").bind(identity.id).all<Row>(),
+    db.prepare("SELECT d.* FROM twin_domains d JOIN twin_snapshots s ON s.id=d.snapshot_id WHERE d.member_id=? AND s.version=(SELECT MAX(version) FROM twin_snapshots WHERE member_id=?) ORDER BY d.id").bind(identity.id, identity.id).all<Row>(),
+    db.prepare("SELECT id,member_id,type,title,status,source_date,overview,created_at,updated_at FROM reports WHERE member_id = ? ORDER BY updated_at DESC").bind(identity.id).all<Row>(),
     db.prepare("SELECT * FROM protocol_versions WHERE member_id = ? AND status = 'current' ORDER BY version DESC LIMIT 1").bind(identity.id).first<Row>(),
-    db.prepare("SELECT * FROM observations WHERE member_id = ? ORDER BY effective_at DESC LIMIT 100").bind(identity.id).all<Row>(),
+    db.prepare("SELECT a.* FROM protocol_actions a JOIN protocol_versions p ON p.id=a.protocol_id WHERE a.member_id=? AND p.status='current' ORDER BY a.sort_order").bind(identity.id).all<Row>(),
+    db.prepare("SELECT id,member_id,concept_code,domain,value_number,value_text,unit,effective_at,source,quality,created_at FROM observations WHERE member_id = ? ORDER BY effective_at DESC LIMIT 100").bind(identity.id).all<Row>(),
     db.prepare("SELECT COUNT(*) AS answered FROM intake_answers WHERE member_id = ?").bind(identity.id).first<{ answered: number }>(),
     db.prepare("SELECT * FROM catalog_versions WHERE active = 1 ORDER BY type").all<Row>(),
     db.prepare("SELECT * FROM notifications WHERE member_id = ? ORDER BY created_at DESC LIMIT 20").bind(identity.id).all<Row>(),
     db.prepare("SELECT * FROM daily_adjustments WHERE member_id = ? ORDER BY day DESC LIMIT 1").bind(identity.id).first<Row>(),
     db.prepare("SELECT role FROM member_roles WHERE member_id = ?").bind(identity.id).all<{ role: string }>(),
     db.prepare("SELECT id, provider, status, external_user_id, last_sync_at, error, updated_at FROM wearable_connections WHERE member_id = ? ORDER BY provider").bind(identity.id).all<Row>(),
+    db.prepare("SELECT * FROM cross_modal_findings WHERE member_id=? AND snapshot_id=(SELECT id FROM twin_snapshots WHERE member_id=? ORDER BY version DESC LIMIT 1) ORDER BY id").bind(identity.id, identity.id).all<Row>(),
   ]);
-
-  const domains = snapshot
-    ? await db.prepare("SELECT * FROM twin_domains WHERE member_id = ? AND snapshot_id = ? ORDER BY id").bind(identity.id, snapshot.id).all<Row>()
-    : { results: [] as Row[] };
-  const actions = protocol
-    ? await db.prepare("SELECT * FROM protocol_actions WHERE member_id = ? AND protocol_id = ? ORDER BY sort_order").bind(identity.id, protocol.id).all<Row>()
-    : { results: [] as Row[] };
-  const [genomics, crossModal, phase3, responseState] = await Promise.all([
+  const [genomics, phase3, responseState] = await Promise.all([
     getGenomicsState(identity.id),
-    snapshot ? getCrossModalFindings(identity.id, String(snapshot.id)) : Promise.resolve([]),
     getMemberOutcomes(identity.id),
     getResponseState(identity.id),
   ]);
@@ -57,9 +52,10 @@ export async function getMemberAppData(identity: MemberIdentity) {
   const journeyRows = journey.results.map((row) => decode(row));
   const complete = journeyRows.filter((row) => row.state === "complete").length;
   const orderRows = orders.results.map((row) => decode(row, ["metadataJson"]));
+  const eventsByOrder = new Map<string, Row[]>();
+  for (const row of orderEvents.results) { const key = String(row.order_id); eventsByOrder.set(key, [...(eventsByOrder.get(key) ?? []), decode(row)]); }
   for (const order of orderRows) {
-    const events = await db.prepare("SELECT id, status, source, public_message, occurred_at FROM order_events WHERE order_id = ? AND member_id = ? ORDER BY occurred_at").bind(order.id, identity.id).all<Row>();
-    order.events = events.results.map((row) => decode(row));
+    order.events = eventsByOrder.get(String(order.id)) ?? [];
   }
   return {
     member: member ? decode(member) : null,
@@ -69,15 +65,15 @@ export async function getMemberAppData(identity: MemberIdentity) {
     catalog: catalog.results.map((row) => decode(row, ["preparationJson"])),
     orders: orderRows,
     sources: sources.results.map((row) => decode(row, ["metadataJson"])),
-    twin: snapshot ? { ...decode(snapshot), domains: domains.results.map((row) => decode(row, ["evidenceJson"])), crossModal: crossModal.map((row) => decode(row as Row, ["layersJson", "evidenceRefsJson", "missingJson"])) } : null,
+    twin: snapshot ? { ...decode(snapshot), domains: domains.results.map((row) => decode(row, ["evidenceJson"])), crossModal: crossModalRows.results.map((row) => decode(row, ["layersJson", "evidenceRefsJson", "missingJson"])) } : null,
     genomics: {
       artifacts: genomics.artifacts.map((row) => decode(row as Row, ["qcJson"])),
       interpretations: genomics.interpretations.map((row) => decode(row as Row, ["evidenceReleaseIdsJson", "limitationsJson"])),
       runs: genomics.runs.map((row) => decode(row as Row, ["evidenceSetJson", "summaryJson"])),
     },
-    reports: reports.results.map((row) => decode(row, ["deepDiveJson"])),
+    reports: reports.results.map((row) => decode(row)),
     protocol: protocol ? { ...decode(protocol), actions: actions.results.map((row) => ({ ...decode(row), done: Boolean(row.done) })) } : null,
-    observations: observations.results.map((row) => decode(row, ["metadataJson"])),
+    observations: observations.results.map((row) => decode(row)),
     intake: { answered: intake?.answered ?? 0, total: intakeQuestions.length },
     notifications: notifications.results.map((row) => decode(row)),
     dailyAdjustment: adjustment ? decode(adjustment) : null,

@@ -220,7 +220,7 @@ test("configures the Worker background processing trigger", async () => {
 
 test("ships first-party auth without automatic production demo or first-user admin", async () => {
   const [member, seed, gate, shell, env, auth, login, signup] = await Promise.all([
-    file("lib/member.ts"), file("lib/seed.ts"), file("app/auth-gate.tsx"), file("components/member-shell.tsx"), file(".env.example"), file("lib/app-auth.ts"), file("app/api/auth/login/route.ts"), file("app/api/auth/signup/route.ts"),
+    file("lib/member.ts"), file("lib/seed.ts"), file("components/client-auth-gate.tsx"), file("components/member-shell.tsx"), file(".env.example"), file("lib/app-auth.ts"), file("app/api/auth/login/route.ts"), file("app/api/auth/signup/route.ts"),
   ]);
   assert.match(member, /ALLOW_DEMO_AUTH === "true"/);
   assert.match(member, /Authentication required/);

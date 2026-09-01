@@ -50,11 +50,6 @@ export function MemberShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const { data, error, refresh } = useAppData();
   const [moreOpen, setMoreOpen] = useState(false);
-  const [menuPath, setMenuPath] = useState(pathname);
-  if (pathname !== menuPath) {
-    setMenuPath(pathname);
-    if (moreOpen) setMoreOpen(false);
-  }
   const name = data?.member?.fullName?.trim() || "Member";
   const email = data?.member?.email?.trim() || "Signed in";
   const initials = name.split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase();
@@ -135,11 +130,11 @@ export function MemberShell({ children }: { children: ReactNode }) {
               <button onClick={() => setMoreOpen(false)} type="button">Close</button>
             </div>
             <nav aria-label="Record and settings">
-              <Link className={pathname === "/ask" ? "active" : ""} href="/ask"><span>Ask your Twin</span><i>→</i></Link>
+              <Link className={pathname === "/ask" ? "active" : ""} href="/ask" onClick={() => setMoreOpen(false)}><span>Ask your Twin</span><i>→</i></Link>
               {libraryNavigation.map((item) => (
-                <Link className={isNavActive(pathname, item.href) ? "active" : ""} href={item.href} key={item.href}><span>{item.label}</span><i>→</i></Link>
+                <Link className={isNavActive(pathname, item.href) ? "active" : ""} href={item.href} key={item.href} onClick={() => setMoreOpen(false)}><span>{item.label}</span><i>→</i></Link>
               ))}
-              {data?.roles.includes("admin") ? <Link className={pathname.startsWith("/admin") ? "active" : ""} href="/admin"><span>Operations</span><i>→</i></Link> : null}
+              {data?.roles.includes("admin") ? <Link className={pathname.startsWith("/admin") ? "active" : ""} href="/admin" onClick={() => setMoreOpen(false)}><span>Operations</span><i>→</i></Link> : null}
             </nav>
             <a className="mobile-more-signout" href="/auth/logout">Sign out · {name}</a>
           </div>

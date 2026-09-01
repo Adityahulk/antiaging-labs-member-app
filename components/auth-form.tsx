@@ -2,7 +2,7 @@
 
 import { FormEvent, useState } from "react";
 
-export function AuthForm() {
+export function AuthForm({ onAuthenticated }: { onAuthenticated?: () => Promise<void> }) {
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -21,7 +21,8 @@ export function AuthForm() {
       const response = await fetch(`/api/auth/${mode === "signup" ? "signup" : "login"}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, password, fullName, inviteCode }) });
       const result = await response.json() as { error?: string };
       if (!response.ok) throw new Error(result.error ?? "Could not sign you in.");
-      window.location.reload();
+      if (onAuthenticated) await onAuthenticated();
+      else window.location.assign("/");
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Could not sign you in.");
       setBusy(false);

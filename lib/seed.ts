@@ -77,8 +77,8 @@ export async function ensureMemberSeed(identity: MemberIdentity): Promise<void> 
     if (!role) {
       await ensurePhaseOneSeed(database, identity, now, seedDemo);
       await ensurePhaseThreeSeed(database, identity, now);
+      if (!seedDemo) await ensureProductionJourney(database, identity.id, now);
     }
-    if (!seedDemo) await ensureProductionJourney(database, identity.id, now);
     return;
   }
 

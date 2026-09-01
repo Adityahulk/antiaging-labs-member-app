@@ -1,11 +1,9 @@
 import { getDatabase, parseJson } from "@/lib/database";
-import { ensureMemberSeed } from "@/lib/seed";
 import { requireRole } from "@/lib/authz";
 import { integrationHealth } from "@/lib/integrations";
 
 export async function GET() {
-  const identity = await requireRole(["admin", "practitioner"]);
-  await ensureMemberSeed(identity);
+  await requireRole(["admin", "practitioner"]);
   const db = await getDatabase();
   const [orders, uploads, events, members, memberRows, approvals, observations, jobs, genomicArtifacts, aiDrafts, chatAudits, betaRequests, interventionCounts, safetyReviews, responseReviews] = await Promise.all([
     db.prepare("SELECT o.*, m.full_name, m.email FROM orders o JOIN members m ON m.id = o.member_id ORDER BY o.updated_at DESC LIMIT 100").all<Record<string, unknown>>(),
