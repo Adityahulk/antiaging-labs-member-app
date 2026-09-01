@@ -22,8 +22,7 @@ export async function AuthGate({ children }: { children: ReactNode }) {
         <span className="auth-mark">A</span>
         <p className="eyebrow">YOUR PERSONAL RESPONSE TWIN</p>
         <h1>Your body doesn’t respond like everyone else’s.</h1>
-        <p>Antiaging Labs combines your bloodwork, DNA and wearable data to build your plan, measure your response and learn what actually works for you.</p>
-        <p className="auth-proof-line"><strong>One focused change at a time.</strong> Measured against your own baseline.</p>
+        <p>Antiaging Labs uses your bloodwork, DNA, and wearables to build a plan and show what actually works for you.</p>
         <AuthForm />
       </section>
     </main>

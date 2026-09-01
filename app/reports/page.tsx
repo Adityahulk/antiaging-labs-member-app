@@ -3,4 +3,4 @@ import { ReportsExperience } from "@/components/reports-experience";
 import { DataGate } from "@/components/ui/data-gate";
 import type { Metadata } from "next";
 export const metadata: Metadata = { title: "Reports — Antiaging Labs", description: "Versioned overview and deep-dive reports grounded in your data.", openGraph: { title: "Reports — Antiaging Labs", description: "Versioned overview and deep-dive reports grounded in your data.", images: [] }, twitter: { title: "Reports — Antiaging Labs", description: "Versioned overview and deep-dive reports grounded in your data.", images: [] } };
-export default function ReportsPage() { return <MemberShell><PageHeader eyebrow="REPORTS" title="Summaries and full analysis." description="Short overviews and deep reports from the same versioned record." /><DataGate title="Loading your reports…"><ReportsExperience /></DataGate></MemberShell>; }
+export default function ReportsPage() { return <MemberShell><PageHeader eyebrow="REPORTS" title="Reports." /><DataGate title="Loading your reports…"><ReportsExperience /></DataGate></MemberShell>; }

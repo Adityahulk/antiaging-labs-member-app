@@ -14,8 +14,8 @@ export function OnboardingExperience() {
       <section className="paper-card validation-panel" aria-labelledby="onboarding-title">
         <div>
           <span className="card-kicker">UNDERSTAND → MEASURE → TEST</span>
-          <h2 id="onboarding-title">You tell us what matters. Your data helps choose what to test first.</h2>
-          <p>Complete the essential questions now. Deeper context appears progressively and can be updated whenever your health or routine changes.</p>
+          <h2 id="onboarding-title">What matters to you.</h2>
+          <p>Essential questions now. You can add more later.</p>
         </div>
         <div className="validation-steps" aria-label="Onboarding readiness">
           <span className={data?.intake.answered ? "done" : ""}><i>1</i><strong>Context</strong><small>{data?.intake.answered ? `${data.intake.answered} saved` : "Start here"}</small></span>

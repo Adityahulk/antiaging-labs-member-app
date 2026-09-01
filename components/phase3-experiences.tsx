@@ -51,9 +51,7 @@ export function CompanionConnections() {
         </span>
       </div>
       <p>
-        Your phone companion reads only the categories you approve, sends
-        changed records in encrypted batches, and keeps deletions and source
-        attribution synchronized.
+        Reads only the categories you approve. Encrypted incremental sync.
       </p>
       <div className="companion-actions">
         <button onClick={() => void create("ios")}>
@@ -155,9 +153,7 @@ export function OutcomesExperience() {
           <span className="card-kicker">YOUR RESULTS</span>
           <h2>What changed—and what we can honestly conclude.</h2>
           <p>
-            Each result keeps its dates, unit, quality, and source trail. When an
-            intervention is not linked to the comparison window, the app does not
-            imply that it caused the change.
+            Dates, unit, quality, and source stay on each result. No linked intervention means no implied cause.
           </p>
         </div>
         <div className="progress-orbit">
@@ -188,8 +184,7 @@ export function OutcomesExperience() {
             <span>NO INTERPRETABLE RESULT YET</span>
             <h2>A result needs a reliable before and after.</h2>
             <p>
-              Complete the assigned intervention and keep the required data source
-              connected. Lab results appear only after a verified retest.
+              Complete the assigned days and keep the outcome source connected.
             </p>
             <a href="/plan">Review your current response test →</a>
           </article>
@@ -200,8 +195,7 @@ export function OutcomesExperience() {
           <span className="card-kicker">OPTIONAL RESEARCH CONTRIBUTION</span>
           <h2>Help validate what works.</h2>
           <p>
-            Only de-identified outcome rows enter cohort analytics, and small
-            groups are suppressed. Turn it off anytime.
+            Only de-identified outcome rows enter cohort analytics. Small groups are suppressed.
           </p>
           <label className="consent-toggle">
             <input
@@ -213,7 +207,7 @@ export function OutcomesExperience() {
             <strong>{consent ? "Contributing" : "Not contributing"}</strong>
           </label>
         </article>
-        <article className="paper-card"><span className="card-kicker">HOW TO READ RESULTS</span><h2>Association is not always response.</h2><p>A related experiment, adherence, uncertainty, and confounders appear on each result when the current data contains them. Missing fields remain visibly unknown.</p><a href="/ask?topic=results">Ask about a result →</a></article>
+        <article className="paper-card"><span className="card-kicker">HOW TO READ RESULTS</span><h2>Association is not always response.</h2><p>Adherence, uncertainty, and confounders appear when present. Missing fields stay unknown.</p><a href="/ask?topic=results">Ask about a result →</a></article>
       </section>
     </>
   );
@@ -389,9 +383,7 @@ export function ExperimentsExperience() {
             <span className="card-kicker">CHOOSE ONE MEASURABLE QUESTION</span>
             <h2>Review before you begin.</h2>
             <p>
-              Each option changes one routine and measures one wearable outcome.
-              Selection is not a diagnosis or medical recommendation, and only one
-              focused response test can run at a time.
+              One routine change, one outcome. Not a diagnosis. One test at a time.
             </p>
           </div>
           <span className="experiment-number">1<small>change</small></span>
@@ -428,7 +420,7 @@ export function ExperimentsExperience() {
         <div className="section-head compact">
           <div>
             <span className="card-kicker">RESPONSE-TEST ARCHIVE</span>
-            <h2>Earlier questions and what they taught us</h2>
+            <h2>Earlier tests</h2>
           </div>
         </div>
         {(data?.experiments ?? []).filter((item) => item.status !== "active")

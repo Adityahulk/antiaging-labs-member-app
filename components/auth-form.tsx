@@ -38,7 +38,7 @@ export function AuthForm() {
       <label>Email<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" required /></label>
       <label>Password<input type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete={mode === "signup" ? "new-password" : "current-password"} minLength={10} required /><small>Minimum 10 characters.</small></label>
       {mode === "signup" ? <label>Confirm password<input type="password" value={confirm} onChange={(event) => setConfirm(event.target.value)} autoComplete="new-password" minLength={10} required /></label> : null}
-      {mode === "signup" ? <label>Founding cohort code <span className="optional-label">OPTIONAL</span><input value={inviteCode} onChange={(event) => setInviteCode(event.target.value)} autoComplete="off" placeholder="Enter your invitation code" /><small>A valid invitation opens the app immediately. You can also create an account and request access.</small></label> : null}
+      {mode === "signup" ? <label>Founding cohort code <span className="optional-label">OPTIONAL</span><input value={inviteCode} onChange={(event) => setInviteCode(event.target.value)} autoComplete="off" placeholder="Enter your invitation code" /><small>A valid invitation opens the app immediately.</small></label> : null}
       {error ? <p className="auth-error" role="alert">{error}</p> : null}
       <button className="primary-button auth-button" disabled={busy}>{busy ? "Please wait…" : mode === "signup" ? "Create secure account →" : "Sign in securely →"}</button>
     </form>

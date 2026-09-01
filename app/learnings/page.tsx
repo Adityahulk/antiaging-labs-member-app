@@ -10,5 +10,5 @@ export const metadata: Metadata = {
 };
 
 export default function LearningsPage() {
-  return <MemberShell><PageHeader eyebrow="LEARNINGS" title="What has worked for you." description="Each test stays attached to the change that produced it, including what is still uncertain." /><DataGate lines={5} title="Loading what your Twin has learned…"><OutcomesLoader /><CustomerResultsExperience /></DataGate></MemberShell>;
+  return <MemberShell><PageHeader eyebrow="LEARNINGS" title="Learnings." /><DataGate lines={5} title="Loading what your Twin has learned…"><OutcomesLoader /><CustomerResultsExperience /></DataGate></MemberShell>;
 }

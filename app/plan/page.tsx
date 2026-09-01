@@ -9,5 +9,5 @@ export const metadata: Metadata = {
 };
 
 export default function PlanPage() {
-  return <MemberShell><PageHeader eyebrow="PLAN" title="Your plan." description="Daily foundations, plus one change measured closely enough to learn from." /><DataGate lines={5} title="Loading your plan…"><PlanExperience /></DataGate></MemberShell>;
+  return <MemberShell><PageHeader eyebrow="PLAN" title="Your plan." /><DataGate lines={5} title="Loading your plan…"><PlanExperience /></DataGate></MemberShell>;
 }

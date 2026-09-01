@@ -6,7 +6,7 @@ import { useAppData } from "./app-provider";
 type Message = { role: "user" | "assistant"; text: string; data?: string[] };
 
 const initialMessages: Message[] = [
-  { role: "assistant", text: "I can explain today’s plan, why something is your current focus, what we have learned from your responses, and what would make a result clearer. What would be most useful right now?" },
+  { role: "assistant", text: "I can explain your plan, current focus, and learnings. What would help?" },
 ];
 
 function answerFor(question: string): Message {
@@ -65,11 +65,11 @@ export function ChatExperience() {
         </div>
         {messages.length === 1 ? <div className="suggested-prompts"><span>TRY ASKING</span><button onClick={() => void send("Why is this my current focus?")} type="button">Why is this my current focus? <i>→</i></button><button onClick={() => void send("What should I do today?")} type="button">What should I do today? <i>→</i></button><button onClick={() => void send("What have we learned about me?")} type="button">What have we learned about me? <i>→</i></button><button onClick={() => void send("What would make my latest result more certain?")} type="button">What would make my latest result clearer? <i>→</i></button></div> : null}
         {sending ? <p className="chat-thinking">Connecting your data…</p> : null}
-        <form className="chat-composer" onSubmit={submit}><input value={input} onChange={(event) => setInput(event.target.value)} placeholder="Ask about today, your plan, or what we have learned…" aria-label="Ask your guide a question" /><button className="send-button" aria-label="Send" disabled={sending} type="submit">↑</button></form>
+        <form className="chat-composer" onSubmit={submit}><input value={input} onChange={(event) => setInput(event.target.value)} placeholder="Ask about today, your plan, or learnings…" aria-label="Ask your guide a question" /><button className="send-button" aria-label="Send" disabled={sending} type="submit">↑</button></form>
       </section>
 
       <aside className="chat-context">
-        <span className="card-kicker">ACTIVE CONTEXT</span><h2>What I know right now</h2>
+        <span className="card-kicker">ACTIVE CONTEXT</span><h2>Right now</h2>
         <div className="context-card"><div><span className="context-icon">◈</span><strong>Response Twin</strong></div><p>{data?.twin?.domains.length??0} health domains · snapshot v{String(data?.twin?.version??"—")}</p><a href="/twin">View my Twin →</a></div>
         <div className="context-card"><div><span className="context-icon">✓</span><strong>My plan v{String(data?.protocol?.version??"—")}</strong></div><p>{data?.protocol?.actions.length??0} foundation actions · {data?.responseState?.interventions.filter((item) => ["active", "approved", "paused"].includes(String(item.status))).length ?? 0} current focus</p><a href="/plan">Open my plan →</a></div>
         <div className="context-card"><div><span className="context-icon">↻</span><strong>Response memory</strong></div><p>{data?.responseState?.responseAssessments.length ?? 0} personal learnings recorded</p><a href="/learnings">See what we learned →</a></div>

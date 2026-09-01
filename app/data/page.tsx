@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 export default function DataPage() {
   return (
     <MemberShell>
-      <PageHeader eyebrow="DATA" title="Your connected health data." description="Wearables, labs and DNA in one place—plus reports, tests and timeline." action={<ButtonLink href="#wearables">Add data</ButtonLink>} />
+      <PageHeader eyebrow="DATA" title="Your data." action={<ButtonLink href="#wearables">Add data</ButtonLink>} />
       <DataGate lines={4} title="Loading your sources…"><DataExperience /></DataGate>
     </MemberShell>
   );

@@ -38,7 +38,7 @@ export function DataExperience() {
   return (
     <>
       <section className="data-entry-hero">
-        <div><span className="card-kicker">START WITH WHAT YOU HAVE</span><h1>Add one reliable source to begin.</h1><p>You do not need every data source. Each layer answers a different question, and missing data stays named as unknown.</p></div>
+        <div><span className="card-kicker">START WITH WHAT YOU HAVE</span><h1>Add one reliable source to begin.</h1></div>
         <div className="data-entry-paths">
           <a href="#wearables"><span>01</span><strong>Wearable history</strong><small>How your body changes day to day</small><i>{data?.wearableConnections.some((item)=>item.status==="active")?"Connected":"Connect"} →</i></a>
           <a href="#uploads"><span>02</span><strong>Existing labs</strong><small>Your current internal state</small><i>{data?.observations.length?"Available":"Upload"} →</i></a>
@@ -161,10 +161,6 @@ export function DataExperience() {
         <article className="paper-card data-quality">
           <span className="card-kicker">DATA QUALITY</span>
           <h2>{coverage >= 80 ? "Strong foundation" : "Still resolving"}</h2>
-          <p>
-            Quality, freshness, missingness, and provenance stay visible in
-            every downstream state.
-          </p>
           <div>
             {data?.twin?.domains
               .filter(
