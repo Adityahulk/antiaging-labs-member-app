@@ -2,7 +2,7 @@
 
 import { FormEvent, useState } from "react";
 
-export function AuthForm({ onAuthenticated }: { onAuthenticated?: () => Promise<void> }) {
+export function AuthForm({ onAuthenticated }: { onAuthenticated?: () => Promise<"authenticated" | "beta" | "unauthenticated" | "error"> }) {
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -21,7 +21,10 @@ export function AuthForm({ onAuthenticated }: { onAuthenticated?: () => Promise<
       const response = await fetch(`/api/auth/${mode === "signup" ? "signup" : "login"}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, password, fullName, inviteCode }) });
       const result = await response.json() as { error?: string };
       if (!response.ok) throw new Error(result.error ?? "Could not sign you in.");
-      if (onAuthenticated) await onAuthenticated();
+      if (onAuthenticated) {
+        const outcome = await onAuthenticated();
+        if (outcome === "unauthenticated" || outcome === "error") throw new Error("Sign-in completed, but this browser did not retain the session. Please try again.");
+      }
       else window.location.assign("/");
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Could not sign you in.");

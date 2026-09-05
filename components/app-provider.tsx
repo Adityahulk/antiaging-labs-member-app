@@ -34,7 +34,7 @@ type ContextValue = {
    *  callers must not render values — a partial or absent record would be
    *  indistinguishable from a real health record of zeroes. */
   error: string | null;
-  refresh: () => Promise<void>;
+  refresh: () => Promise<"authenticated" | "beta" | "unauthenticated" | "error">;
   toggleAction: (id: number, done: boolean) => Promise<void>;
 };
 const AppContext = createContext<ContextValue | null>(null);
@@ -44,7 +44,14 @@ const LOAD_FAILED = "We could not reach your health record. Nothing shown below 
 type BootstrapResult = { kind: "authenticated"; data: AppData } | { kind: "unauthenticated" } | { kind: "beta"; status: string };
 
 async function fetchBootstrap(): Promise<BootstrapResult> {
-  const response = await fetch("/api/bootstrap", { cache: "no-store" });
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), 12_000);
+  let response: Response;
+  try {
+    response = await fetch("/api/bootstrap", { cache: "no-store", signal: controller.signal });
+  } finally {
+    window.clearTimeout(timeout);
+  }
   if (response.status === 401) return { kind: "unauthenticated" };
   if (response.status === 403) {
     const result = await response.json().catch(() => ({})) as { betaStatus?: string };
@@ -72,11 +79,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      apply(await fetchBootstrap());
+      const result = await fetchBootstrap();
+      apply(result);
+      return result.kind;
     } catch {
       setData(null);
       setAuthStatus("error");
       setError(LOAD_FAILED);
+      return "error";
     } finally {
       setLoading(false);
     }
