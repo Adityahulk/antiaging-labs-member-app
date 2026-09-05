@@ -1,8 +1,8 @@
 "use client";
+/* eslint-disable @next/next/no-html-link-for-pages */
 
 import { useEffect, useState, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
-import Link from "next/link";
 import { useAppData } from "./app-provider";
 import { Button } from "./ui/button";
 import { Meter } from "./ui/meter";
@@ -71,14 +71,14 @@ export function MemberShell({ children }: { children: ReactNode }) {
     <div className="app-shell response-shell">
       <a className="skip-link" href="#main-content">Skip to content</a>
       <aside className="sidebar response-sidebar">
-        <Link className="brand" href="/" aria-label="Antiaging Labs home">
+        <a className="brand" href="/" aria-label="Antiaging Labs home">
           <span className="brand-mark">A</span>
           <span>ANTIAGING LABS</span>
-        </Link>
+        </a>
         <nav className="primary-nav response-primary-nav" aria-label="Primary navigation">
           {primaryNavigation.map((item) => {
             const active = isNavActive(pathname, item.href);
-            return <Link key={item.href} className={`nav-item ${active ? "active" : ""}`} href={item.href}><span>{item.glyph}</span>{item.label}</Link>;
+            return <a key={item.href} className={`nav-item ${active ? "active" : ""}`} href={item.href}><span>{item.glyph}</span>{item.label}</a>;
           })}
         </nav>
         <div className="response-stage-card">
@@ -87,8 +87,8 @@ export function MemberShell({ children }: { children: ReactNode }) {
         </div>
         <nav className="library-nav" aria-label="Health record and settings">
           <span>YOUR RECORD</span>
-          {libraryNavigation.map((item) => <Link className={isNavActive(pathname, item.href) ? "active" : ""} href={item.href} key={item.href}>{item.label}<i>→</i></Link>)}
-          {data?.roles.includes("admin") ? <Link className={pathname.startsWith("/admin") ? "active" : ""} href="/admin">Operations<i>→</i></Link> : null}
+          {libraryNavigation.map((item) => <a className={isNavActive(pathname, item.href) ? "active" : ""} href={item.href} key={item.href}>{item.label}<i>→</i></a>)}
+          {data?.roles.includes("admin") ? <a className={pathname.startsWith("/admin") ? "active" : ""} href="/admin">Operations<i>→</i></a> : null}
         </nav>
         <a className="profile-button" href="/auth/logout" title="Sign out">
           <span className="avatar">{initials}</span><span><strong>{name}</strong><small>{email}</small></span><span className="more">SIGN OUT</span>
@@ -106,10 +106,10 @@ export function MemberShell({ children }: { children: ReactNode }) {
           </div>
         ) : children}
       </main>
-      <Link className="floating-guide" href="/ask" aria-label="Ask your Twin"><span>✦</span> Ask your Twin</Link>
+      <a className="floating-guide" href="/ask" aria-label="Ask your Twin"><span>✦</span> Ask your Twin</a>
       <nav className="mobile-nav response-mobile-nav" aria-label="Mobile navigation">
         {primaryNavigation.map((item) => (
-          <Link className={isNavActive(pathname, item.href) ? "active" : ""} href={item.href} key={item.href}><span>{item.glyph}</span>{item.shortLabel}</Link>
+          <a className={isNavActive(pathname, item.href) ? "active" : ""} href={item.href} key={item.href}><span>{item.glyph}</span>{item.shortLabel}</a>
         ))}
         <button
           aria-controls="mobile-more-sheet"
@@ -130,11 +130,11 @@ export function MemberShell({ children }: { children: ReactNode }) {
               <button onClick={() => setMoreOpen(false)} type="button">Close</button>
             </div>
             <nav aria-label="Record and settings">
-              <Link className={pathname === "/ask" ? "active" : ""} href="/ask" onClick={() => setMoreOpen(false)}><span>Ask your Twin</span><i>→</i></Link>
+              <a className={pathname === "/ask" ? "active" : ""} href="/ask" onClick={() => setMoreOpen(false)}><span>Ask your Twin</span><i>→</i></a>
               {libraryNavigation.map((item) => (
-                <Link className={isNavActive(pathname, item.href) ? "active" : ""} href={item.href} key={item.href} onClick={() => setMoreOpen(false)}><span>{item.label}</span><i>→</i></Link>
+                <a className={isNavActive(pathname, item.href) ? "active" : ""} href={item.href} key={item.href} onClick={() => setMoreOpen(false)}><span>{item.label}</span><i>→</i></a>
               ))}
-              {data?.roles.includes("admin") ? <Link className={pathname.startsWith("/admin") ? "active" : ""} href="/admin" onClick={() => setMoreOpen(false)}><span>Operations</span><i>→</i></Link> : null}
+              {data?.roles.includes("admin") ? <a className={pathname.startsWith("/admin") ? "active" : ""} href="/admin" onClick={() => setMoreOpen(false)}><span>Operations</span><i>→</i></a> : null}
             </nav>
             <a className="mobile-more-signout" href="/auth/logout">Sign out · {name}</a>
           </div>

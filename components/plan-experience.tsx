@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useMemo } from "react";
 import { useAppData } from "./app-provider";
 import { ExperimentWorkspace } from "./protocol-experience";
@@ -68,7 +67,7 @@ export function PlanExperience() {
           <input id={`plan-action-${action.id}`} checked={action.done} onChange={(event) => void toggleAction(action.id, event.target.checked)} type="checkbox" />
           <span><strong>{action.title}</strong><small>{action.detail}</small><em>Why: {action.reason}</em></span>
         </label>)}</div>
-      </article>)}</div> : <div className="empty-state plan-empty"><h3>Your foundation plan is being prepared.</h3><p>Add context and one reliable signal. Actions are not invented from missing data.</p><Link href="/intake">Complete my context →</Link></div>}
+      </article>)}</div> : <div className="empty-state plan-empty"><h3>Your foundation plan is being prepared.</h3><p>Add context and one reliable signal. Actions are not invented from missing data.</p><a href="/intake">Complete my context →</a></div>}
     </section>
 
     <section className="response-test-section" id="current-focus">

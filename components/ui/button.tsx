@@ -1,4 +1,3 @@
-import Link from "next/link";
 import type { ComponentProps, ReactNode } from "react";
 
 type Variant = "primary" | "secondary" | "quiet";
@@ -41,7 +40,7 @@ export function Button({ variant = "primary", trailing, wide, className, childre
   );
 }
 
-type ButtonLinkProps = Omit<ComponentProps<typeof Link>, "className"> & {
+type ButtonLinkProps = Omit<ComponentProps<"a">, "className"> & {
   variant?: Variant;
   trailing?: ReactNode;
   wide?: boolean;
@@ -50,8 +49,8 @@ type ButtonLinkProps = Omit<ComponentProps<typeof Link>, "className"> & {
 
 export function ButtonLink({ variant = "primary", trailing, wide, className, children, ...rest }: ButtonLinkProps) {
   return (
-    <Link className={classes(variant, wide, className)} {...rest}>
+    <a className={classes(variant, wide, className)} {...rest}>
       {content(children, variant, trailing)}
-    </Link>
+    </a>
   );
 }
